@@ -4,9 +4,11 @@ import json
 import abc
 import hashlib
 import typing as t
+
+from lark_oapi import AESCipher
+
 from utils import dict_2_obj
-from flask import request, jsonify
-from decrypt import AESCipher
+from flask import request
 
 
 class Event(object):
@@ -42,7 +44,7 @@ class Event(object):
 
 
 class MessageReceiveEvent(Event):
-    # message receive event defined in https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/events/receive
+
 
     @staticmethod
     def event_type():
@@ -112,7 +114,7 @@ class EventManager(object):
             raise Exception("ENCRYPT_KEY is necessary")
         cipher = AESCipher(encrypt_key)
 
-        return json.loads(cipher.decrypt_string(encrypt_data))
+        return json.loads(cipher.decrypt_str(encrypt_data))
 
 
 class InvalidEventException(Exception):
