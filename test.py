@@ -1,4 +1,5 @@
 import SparkApi
+import asyncio
 
 # 以下密钥信息从控制台获取
 appid = "f4317c24"  # 填写控制台中获取的 APPID 信息
@@ -52,3 +53,5 @@ if __name__ == '__main__':
         SparkApi.main(appid, api_key, api_secret, Spark_url, domain, question)
         # getText("assistant", SparkApi.answer)
         # print(str(text))
+
+

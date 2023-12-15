@@ -14,7 +14,26 @@ from wsgiref.handlers import format_date_time
 
 import websocket  # 使用websocket_client
 
+from api import build_card, get_current_time, updateTextCard, getText, checklen
+
 answer = ""
+app_id = ""
+message_id = ""
+
+# 以下密钥信息从控制台获取
+appid = "f4317c24"  # 填写控制台中获取的 APPID 信息
+api_secret = "ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx"  # 填写控制台中获取的 APISecret 信息
+api_key = "750605805c6e5191737087ec504f600d"  # 填写控制台中获取的 APIKey 信息
+
+# 用于配置大模型版本，默认“general/generalv2”
+# domain = "general"   # v1.5版本
+# domain = "generalv2"  # v2.0版本
+domain = "generalv3"  # v3.0版本
+
+# 云端环境的服务地址
+# Spark_url = "ws://spark-api.xf-yun.com/v1.1/chat"  # v1.5环境的地址
+# Spark_url = "ws://spark-api.xf-yun.com/v2.1/chat"  # v2.0环境的地址
+Spark_url = "ws://spark-api.xf-yun.com/v3.1/chat"  # v3.0环境的地址
 
 
 class Ws_Param(object):
@@ -96,9 +115,19 @@ def on_message(ws, message):
         # print(content, end="")
         global answer
         answer += content
-        print(answer)
+
+        global app_id
+        global message_id
+
+        # print(answer)
+
         if status == 2:
+            card_content = build_card("处理结果", get_current_time(),  answer, True, True)
+            updateTextCard(app_id, message_id, card_content)
             ws.close()
+        else:
+            card_content = build_card("处理结果", get_current_time(),  answer, False, True)
+            updateTextCard(app_id, message_id, card_content)
 
 
 def gen_params(appid, domain, question):
@@ -127,7 +156,6 @@ def gen_params(appid, domain, question):
 
 
 def main(appid, api_key, api_secret, Spark_url, domain, question):
-    # print("星火:")
     wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
     websocket.enableTrace(False)
     wsUrl = wsParam.create_url()
@@ -136,3 +164,15 @@ def main(appid, api_key, api_secret, Spark_url, domain, question):
     ws.question = question
     ws.domain = domain
     ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+
+
+def sendMessage(APP_ID: str, MESSAGE_ID: str, message):
+    global answer
+    answer = ""
+    global app_id
+    app_id = APP_ID
+    global message_id
+    message_id = MESSAGE_ID
+    question = checklen(getText("user", message))
+    main(appid, api_key, api_secret, Spark_url, domain, question)
+    return None

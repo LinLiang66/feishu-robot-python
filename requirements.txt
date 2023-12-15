@@ -6,3 +6,4 @@ Werkzeug<3
 websocket~=0.2.1
 websocket-client~=1.7.0
 lark-oapi==1.0.17
+asgiref~=3.7.2
