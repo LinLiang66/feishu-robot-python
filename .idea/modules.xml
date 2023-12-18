@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/robot-python-feishu.iml" filepath="$PROJECT_DIR$/.idea/robot-python-feishu.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/python-robot.iml" filepath="$PROJECT_DIR$/.idea/python-robot.iml" />
     </modules>
   </component>
 </project>

@@ -33,3 +33,21 @@ class Card(object):
         self.action: Optional[Action] = None
         self.raw: Optional[RawRequest] = None
         init(self, d, self._types)
+
+
+class AppCache(object):
+    _types = {}
+
+    def __init__(self, d=None) -> None:
+        self.appid: Optional[str] = None
+        self.app_secret: Optional[str] = None
+        self.verification_token: Optional[str] = None
+        self.encrypt_key: Optional[str] = None
+        self.robot_appid: Optional[str] = None
+        self.robot_api_secret: Optional[str] = None
+        self.robot_api_key: Optional[str] = None
+        self.robot_domain: Optional[str] = None
+        self.robot_spark_url: Optional[str] = None
+        self.robot_temperature: Optional[float] = 0.5
+
+        init(self, d, self._types)

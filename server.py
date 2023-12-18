@@ -118,18 +118,20 @@ def msg_error_handler(ex):
     return response
 
 
-@app.route("/", methods=["POST"])
-async def callback_event_handler():
+@app.route("/<appid>", methods=["POST"])
+async def callback_event_handler(appid):
+    print(appid)
     event_handler, event = event_manager.get_handler_with_event(VERIFICATION_TOKEN, ENCRYPT_KEY)
-    if cache.get(":message_event:"+event.header.event_id) is None:
-        cache.set(":message_event:"+event.header.event_id, "Message has been handle", timeout=25200)
+    if cache.get(":message_event:" + event.header.event_id) is None:
+        cache.set(":message_event:" + event.header.event_id, "Message has been handle", timeout=25200)
         return event_handler(event)
     return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
                     "timestamp": int(time.time() * 1000)})
 
 
-@app.route("/card", methods=["POST"])
-async def card():
+@app.route("/card/<appid>", methods=["POST"])
+async def card(appid):
+    print(appid)
     dict_data = request.get_json()
     callback_type = dict_data.get("type")
     # only verification data has callback_type, else is event
@@ -140,8 +142,8 @@ async def card():
         return jsonify({"challenge": dict_data.get("challenge")})
 
     data = Card(dict_data)
-    if cache.get(":card_event:"+data.open_message_id) is None:
-        cache.set(":card_event:"+data.open_message_id, "Event has been handle", timeout=25200)
+    if cache.get(":card_event:" + data.open_message_id) is None:
+        cache.set(":card_event:" + data.open_message_id, "Event has been handle", timeout=25200)
         resp = do_interactive_card(data)
         return resp
     return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
@@ -149,5 +151,13 @@ async def card():
 
 
 if __name__ == "__main__":
+    key = {
+        "APP_ID": "cli_a5f2a42a243f100b",
+        "APP_SECRET": "zBBkBSVaLQV1Es8LYarDmeaRfKhp5reQ",
+        "VERIFICATION_TOKEN": "EcXED5wrtPhR9nGYh9PRYdDWHpIaTP2j",
+        "ENCRYPT_KEY": "Lin927919732Liang"
+    }
+    cache.set(":robot_key:cli_a5f2a42a243f100b", json.dumps(key))
+    print(cache.get(":robot_key:cli_a5f2a42a243f100b"))
     # init()
     app.run(host="0.0.0.0", port=8081, debug=False)
