@@ -9,3 +9,4 @@ asgiref~=3.7.2
 redis~=5.0.1
 pandas~=2.1.4
 Jinja2~=3.1.2
+flask_caching~=2.1.0

@@ -23,7 +23,7 @@ from model import Card
 from serverPiluin import message_handle_process
 
 config = {
-    "DEBUG": True,  # some Flask specific configs
+    "ERROR": False,  # some Flask specific configs
     "CACHE_TYPE": "redis",  # Flask-Caching related configs
     "CACHE_REDIS_HOST": '101.227.48.127',
     "CACHE_REDIS_PORT": 6379,
@@ -55,7 +55,7 @@ LARK_HOST = os.getenv("LARK_HOST")
 event_manager = EventManager()
 
 # 注册卡片回调
-card_handler = lark_oapi.CardActionHandler.builder(ENCRYPT_KEY, VERIFICATION_TOKEN, lark_oapi.LogLevel.DEBUG) \
+card_handler = lark_oapi.CardActionHandler.builder(ENCRYPT_KEY, VERIFICATION_TOKEN, lark_oapi.LogLevel.ERROR) \
     .register(do_interactive_card) \
     .build()
 

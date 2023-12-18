@@ -14,11 +14,6 @@ from serverPiluin import card_handle_process
 text = []
 
 
-def contains_help(content):
-    pattern = r'(帮助|help)'
-    return bool(re.search(pattern, content))
-
-
 # 获取现行时间 yyyy-MM-dd HH:mm:ss格式
 def get_current_time():
     now = datetime.datetime.now()
@@ -46,7 +41,7 @@ def _upload_image(app_id: str) -> str:
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     file = open("alert.png", "rb")
@@ -72,7 +67,7 @@ def get_chat_info(chat_id: str, app_id: str) -> GetChatResponseBody:
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     request = GetChatRequest.builder() \
@@ -94,7 +89,7 @@ def update_chat_name(chat_id: str, chat_name: str, app_id: str):
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     request: UpdateChatRequest = UpdateChatRequest.builder() \
@@ -118,7 +113,7 @@ def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1, ) -> None:
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     msg = data.event.message
@@ -155,7 +150,7 @@ def get_message(app_id: str, message_id: str) -> GetMessageResponse:
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     # 构造请求对象
@@ -199,7 +194,7 @@ def updateTextCard(app_id, message_id, content) -> bool:
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     # 构造请求对象
@@ -227,7 +222,7 @@ def send_message(app_id: str, receive_id_type: str, receive_id: str, msg_type: s
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     # 构造请求对象
@@ -260,7 +255,7 @@ def reply_message(app_id: str, message_id: str, content: str, msg_type: str) -> 
     client = lark.Client.builder() \
         .app_id(app_id) \
         .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.DEBUG) \
+        .log_level(lark.LogLevel.ERROR) \
         .build()
 
     # 构造请求对象
