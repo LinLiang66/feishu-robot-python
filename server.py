@@ -1,32 +1,50 @@
 #!/usr/bin/env python3.8
 
 
-import os
+import asyncio
+import importlib
+import json
 import logging
+import os
 import time
 
 import lark_oapi
-from lark_oapi import AESCipher
-from lark_oapi.adapter.flask import *
 import requests
-import asyncio
 from asgiref.wsgi import WsgiToAsgi
-import SparkApi
-from api import reply_message, build_card, get_current_time, do_interactive_card, is_within_five_seconds, contains_help, \
-    help_card
-
-from event import MessageReceiveEvent, UrlVerificationEvent, EventManager, InvalidEventException
-from flask import Flask, jsonify
 from dotenv import load_dotenv, find_dotenv
-import json
+from flask import Flask, jsonify
+from lark_oapi.adapter.flask import *
+from flask_caching import Cache
+import SparkApi
+from api import reply_message, build_card, get_current_time, do_interactive_card, is_within_five_seconds
 
+from event import MessageReceiveEvent, UrlVerificationEvent, EventManager
 from model import Card
+from serverPiluin import message_handle_process
+
+config = {
+    "DEBUG": True,  # some Flask specific configs
+    "CACHE_TYPE": "redis",  # Flask-Caching related configs
+    "CACHE_REDIS_HOST": '101.227.48.127',
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_PASSWORD": 'Lin927919732',
+    "CACHE_REDIS_DB": 0,
+
+}
 
 # load env parameters form file named .env
 load_dotenv(find_dotenv())
 
 app = Flask(__name__)
 asgi_app = WsgiToAsgi(app)
+app.config.from_mapping(config)
+cache = Cache(app)
+
+config_module = importlib.import_module("config")
+config_instance = config_module.Config()
+
+print(config_instance.setting1)  # 输出 "value1"
+print(config_instance.setting2)  # 输出 "value2"
 
 # load from env
 APP_ID = os.getenv("APP_ID")
@@ -58,7 +76,6 @@ def request_url_verify_handler(req_data: UrlVerificationEvent):
 @event_manager.register("im.message.receive_v1")
 def message_receive_event_handler(req_data: MessageReceiveEvent):
     message = req_data.event.message
-
     if message.message_type != "text":
         logging.warn("Other types of messages have not been processed yet")
         return jsonify()
@@ -69,11 +86,15 @@ def message_receive_event_handler(req_data: MessageReceiveEvent):
     data = json.loads(message.content)
     # echo text message
     text_content = data["text"]
-    if contains_help(text_content):
-        # 构造首次响应卡片
-        card_content = help_card()
-        # 回复空卡片消息，并拿到新的message_id
+    # cache.set(req_data.event.sender.sender_id.open_id, text_content, timeout=18)
+    # 进入消息处理流程，并获取回复内容
+    handle_content = message_handle_process(text_content)
+    # 命中预设流程，进行回复
+    if handle_content.mate:
+        card_content = handle_content.card
         reply_message(app_id, message_id, card_content, "interactive")
+    # 命中无需继续往下处理，直接返回
+    if not handle_content.continue_processing:
         return jsonify()
 
     # 构造首次响应卡片
@@ -99,31 +120,32 @@ def msg_error_handler(ex):
 
 @app.route("/", methods=["POST"])
 async def callback_event_handler():
-    dict_data = json.loads(request.data)
-
-    dict_data = event_manager._decrypt_data(ENCRYPT_KEY, dict_data)
-    # get create_time
-    create_time = dict_data.get("event").get("message").get("create_time")
-    if not is_within_five_seconds(create_time):
-        message = {
-            "message": "request has exceeded the valid processing time.",
-            "success": False,
-            "timestamp": int(time.time() * 1000)
-        }
-        return lark_oapi.JSON.marshal(message)
-    event_handler, event = event_manager.get_handler_and_event(dict_data, VERIFICATION_TOKEN, ENCRYPT_KEY)
-
-    # event_handler, event = event_manager.get_handler_with_event(VERIFICATION_TOKEN, ENCRYPT_KEY)
-
-    return event_handler(event)
+    event_handler, event = event_manager.get_handler_with_event(VERIFICATION_TOKEN, ENCRYPT_KEY)
+    if cache.get(":message_event:"+event.header.event_id) is None:
+        cache.set(":message_event:"+event.header.event_id, "Message has been handle", timeout=25200)
+        return event_handler(event)
+    return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
+                    "timestamp": int(time.time() * 1000)})
 
 
 @app.route("/card", methods=["POST"])
 async def card():
-    print(request.data)  # 输出：False
-    data = Card(request.get_json())
-    resp = do_interactive_card(data)
-    return resp
+    dict_data = request.get_json()
+    callback_type = dict_data.get("type")
+    # only verification data has callback_type, else is event
+    if callback_type == "url_verification":
+        # url verification, just need return challenge
+        if dict_data.get("token") != VERIFICATION_TOKEN:
+            raise Exception("VERIFICATION_TOKEN is invalid")
+        return jsonify({"challenge": dict_data.get("challenge")})
+
+    data = Card(dict_data)
+    if cache.get(":card_event:"+data.open_message_id) is None:
+        cache.set(":card_event:"+data.open_message_id, "Event has been handle", timeout=25200)
+        resp = do_interactive_card(data)
+        return resp
+    return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
+                    "timestamp": int(time.time() * 1000)})
 
 
 if __name__ == "__main__":

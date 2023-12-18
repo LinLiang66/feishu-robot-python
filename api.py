@@ -9,6 +9,7 @@ import lark_oapi as lark
 from lark_oapi.api.im.v1 import *
 
 from model import Card
+from serverPiluin import card_handle_process
 
 text = []
 
@@ -185,16 +186,12 @@ def get_text_from_json(json_str):
 
 # 处理卡片回调
 def do_interactive_card(data: Card) -> Any:
-    print("清空话题上下文==" + str(data.action.value.get("text")))  # 输出：False
-    print("赞一下||踩一下==" + str(data.action.value.get("success")))  # 输出：False
-
-    # if data.action.value.get("success"):
-    # messagedata = get_message(data.app_id, data.open_message_id)
-    # if messagedata.success():
-    #     text_content = get_text_from_json(messagedata.data.items[0].body.content)
-    #     return build_card("🎉 处理结果", get_current_time(), text_content, True, False)
-
-    return lark.JSON.marshal({"success": True, "message": "流程已结束", "code": 200})
+    # 进入消息处理流程，并获取回复内容
+    handle_content = card_handle_process(data)
+    # 命中预设流程，进行回复
+    if handle_content.mate:
+        return handle_content.card
+    return lark.JSON.marshal({"success": False, "message": "本事件未被定义！", "code": 200})
 
 
 def updateTextCard(app_id, message_id, content) -> bool:
@@ -289,222 +286,49 @@ def reply_message(app_id: str, message_id: str, content: str, msg_type: str) -> 
     return response
 
 
-# 构建help卡片
-def help_card() -> str:
-    card = {
-        "elements": [
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": "👋 **你好呀，我是一款基于星火认知大模型技术的智能聊天机器人！**\n了解更多玩法技巧，请点击右侧「使用说明」查看👉"
-                },
-                "extra": {
-                    "tag": "button",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": "使用说明"
-                    },
-                    "type": "primary",
-                    "multi_url": {
-                        "url": "https://connect-ai.feishu.cn/wiki/VyEGwsgWMimSpUkx2SEcAgosnZc",
-                        "pc_url": "",
-                        "android_url": "",
-                        "ios_url": ""
-                    }
-                }
-            },
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": " 🆑 **清除话题上下文**\n文本回复 清除 或 /clear"
-                },
-                "extra": {
-                    "tag": "button",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": "立刻清除"
-                    },
-                    "type": "danger",
-                    "confirm": {
-                        "title": {
-                            "tag": "plain_text",
-                            "content": "您确定要清除对话上下文吗"
-                        },
-                        "text": {
-                            "tag": "plain_text",
-                            "content": "请注意，这将开始一个全新的对话，您将无法利用之前话题的历史消息"
-                        }
-                    },
-                    "value": {
-                        "text": "clear"
-                    }
-                }
-            },
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": "🚀 **AI模型切换**\n文本回复 模型 或 /model"
-                },
-                "extra": {
-                    "tag": "select_static",
-                    "placeholder": {
-                        "tag": "plain_text",
-                        "content": ""
-                    },
-                    "value": {
-                        "text": "domain_version"
-                    },
-                    "initial_option": "generalv3",
-                    "options": [
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "spark1.5-chat"
-                            },
-                            "value": "general"
-                        },
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "spark2.1-chat"
-                            },
-                            "value": "generalv2"
-                        },
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "spark3.1-chat"
-                            },
-                            "value": "generalv3"
-                        }
-                    ],
-                    "confirm": {
-                        "title": {
-                            "tag": "plain_text",
-                            "content": "您确定要更改模型吗？"
-                        },
-                        "text": {
-                            "tag": "plain_text",
-                            "content": "选择模型可以让AI更好地理解您的需求"
-                        }
-                    }
-                }
-            },
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": "🤖 **发散模式选择**\n文本回复 发散模式 或 /ai_mode"
-                },
-                "extra": {
-                    "tag": "select_static",
-                    "placeholder": {
-                        "tag": "plain_text",
-                        "content": ""
-                    },
-                    "value": {
-                        "text": "temperature"
-                    },
-                    "initial_option": "0.5",
-                    "options": [
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "严谨"
-                            },
-                            "value": "1"
-                        },
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "简洁"
-                            },
-                            "value": "0.75"
-                        },
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "标准"
-                            },
-                            "value": "0.5"
-                        },
-                        {
-                            "text": {
-                                "tag": "plain_text",
-                                "content": "发散"
-                            },
-                            "value": "0.25"
-                        }
-                    ],
-                    "confirm": {
-                        "title": {
-                            "tag": "plain_text",
-                            "content": "您确定要更改发散模式吗？"
-                        },
-                        "text": {
-                            "tag": "plain_text",
-                            "content": "选择内置模式，可以让AI更好地理解您的需求"
-                        }
-                    }
-                }
-            },
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": "🎒 需要更多帮助\n文本回复 帮助 或 /help"
-                },
-                "extra": {
-                    "tag": "button",
-                    "text": {
-                        "tag": "lark_md",
-                        "content": "意见反馈"
-                    },
-                    "type": "primary",
-                    "multi_url": {
-                        "url": "https://www.feishu.cn",
-                        "android_url": "",
-                        "ios_url": "",
-                        "pc_url": ""
-                    }
-                }
-            }
-        ],
-        "header": {
-            "template": "blue",
-            "title": {
-                "content": "🎒需要帮助吗？",
-                "tag": "plain_text"
-            }
-        }
-    }
-    return lark.JSON.marshal(card)
-
-
 # 构建卡片
 def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> str:
     if content:
         content = re.sub(r'(?m)^(.*)$', r'**\1**', content)
+    elif robot:
+        card = {
+            "elements": [
+                {
+                    "tag": "markdown",
+                    "content": content,
+                    "text_align": "left"
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "🤖能力来源:小肉"
+                        }
+                    ]
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "正在思考，请稍等..."
+
+                        }
+                    ]
+                }
+            ]
+        }
+
+        return lark.JSON.marshal(card)
+
+
+
     if robot:
         if end:
-            note = "✨：输入<帮助> 或 /help 即可获取帮助菜单"
+            note = "🤖温馨提示✨✨：输入<帮助> 或 /help 即可获取帮助菜单"
         else:
-            note = "正在思考，请稍等..."
+            note = "正在处理中，请稍等..."
 
         card = {
             "elements": [
