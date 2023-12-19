@@ -8,10 +8,13 @@ import lark_oapi as lark
 
 from lark_oapi.api.im.v1 import *
 
-from model import Card
+from exts import cache
+from model import Card, AppCache
+from redisServer import redis
 from serverPiluin import card_handle_process
 
-text = []
+
+# text = []
 
 
 # 获取现行时间 yyyy-MM-dd HH:mm:ss格式
@@ -28,11 +31,11 @@ def is_within_five_seconds(timestamp) -> bool:
 
 
 # 根据APP_ID获取APP_SECRET
-def get_app_secret(send_appid):
-    app_secrets = {
-        "cli_a5f2a42a243f100b": "zBBkBSVaLQV1Es8LYarDmeaRfKhp5reQ"
-    }
-    return app_secrets.get(send_appid)
+def get_app_secret(appid):
+    appCacheJson = cache.get(":robot_app_key:" + appid)
+    if appCacheJson:
+        return AppCache(appCacheJson).app_secret
+    return None
 
 
 # 上传图片
@@ -181,6 +184,7 @@ def get_text_from_json(json_str):
 
 # 处理卡片回调
 def do_interactive_card(data: Card) -> Any:
+    cache.set(":card_event:" + data.open_message_id, "Event has been handle", timeout=25200)
     # 进入消息处理流程，并获取回复内容
     handle_content = card_handle_process(data)
     # 命中预设流程，进行回复
@@ -316,8 +320,6 @@ def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> 
         }
 
         return lark.JSON.marshal(card)
-
-
 
     if robot:
         if end:
@@ -517,7 +519,10 @@ def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> 
 
 # length = 0
 
-def getText(role, content):
+def getText(open_id, role, content):
+    text = redis.get(":message_context:" + open_id)
+    if text is None:
+        text = []
     jsoncon = {"role": role, "content": content}
     text.append(jsoncon)
     return text
@@ -532,7 +537,8 @@ def getlength(text):
     return length
 
 
-def checklen(text):
+def checklen(open_id, text):
     while getlength(text) > 8000:
         del text[0]
+    redis.set(":message_context:" + open_id, text)
     return text

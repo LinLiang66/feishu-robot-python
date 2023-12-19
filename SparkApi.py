@@ -4,7 +4,7 @@ import datetime
 import hashlib
 import hmac
 import json
-import uuid
+
 from urllib.parse import urlparse
 import ssl
 from datetime import datetime
@@ -15,25 +15,13 @@ from wsgiref.handlers import format_date_time
 import websocket  # 使用websocket_client
 
 from api import build_card, get_current_time, updateTextCard, getText, checklen
+from cardBuild import get_robot_user_model
+from exts import cache
+from model import AppCache
 
 answer = ""
 app_id = ""
 message_id = ""
-
-# 以下密钥信息从控制台获取
-appid = "f4317c24"  # 填写控制台中获取的 APPID 信息
-api_secret = "ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx"  # 填写控制台中获取的 APISecret 信息
-api_key = "750605805c6e5191737087ec504f600d"  # 填写控制台中获取的 APIKey 信息
-
-# 用于配置大模型版本，默认“general/generalv2”
-# domain = "general"   # v1.5版本
-# domain = "generalv2"  # v2.0版本
-domain = "generalv3"  # v3.0版本
-
-# 云端环境的服务地址
-# Spark_url = "ws://spark-api.xf-yun.com/v1.1/chat"  # v1.5环境的地址
-# Spark_url = "ws://spark-api.xf-yun.com/v2.1/chat"  # v2.0环境的地址
-Spark_url = "ws://spark-api.xf-yun.com/v3.1/chat"  # v3.0环境的地址
 
 
 class Ws_Param(object):
@@ -96,7 +84,8 @@ def on_open(ws):
 
 
 def run(ws, *args):
-    data = json.dumps(gen_params(appid=ws.appid, domain=ws.domain, question=ws.question))
+    data = json.dumps(gen_params(appid=ws.appid, domain=ws.domain, temperature=ws.temperature, question=ws.question,
+                                 open_id=ws.open_id))
     ws.send(data)
 
 
@@ -119,30 +108,28 @@ def on_message(ws, message):
         global app_id
         global message_id
 
-        # print(answer)
-
         if status == 2:
-            card_content = build_card("处理结果", get_current_time(),  answer, True, True)
+            card_content = build_card("处理结果", get_current_time(), answer, True, True)
             updateTextCard(app_id, message_id, card_content)
             ws.close()
         else:
-            card_content = build_card("处理结果", get_current_time(),  answer, False, True)
+            card_content = build_card("处理结果", get_current_time(), answer, False, True)
             updateTextCard(app_id, message_id, card_content)
 
 
-def gen_params(appid, domain, question):
+def gen_params(appid, domain, temperature, question, open_id):
     """
     通过appid和用户的提问来生成请参数
     """
     data = {
         "header": {
             "app_id": appid,
-            "uid": str(uuid.uuid4())
+            "uid": open_id
         },
         "parameter": {
             "chat": {
                 "domain": domain,
-                "temperature": 0.5,
+                "temperature": temperature,
                 "max_tokens": 2048
             }
         },
@@ -155,7 +142,7 @@ def gen_params(appid, domain, question):
     return data
 
 
-def main(appid, api_key, api_secret, Spark_url, domain, question):
+def main(appid, api_key, api_secret, Spark_url, domain, temperature, question, open_id):
     wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
     websocket.enableTrace(False)
     wsUrl = wsParam.create_url()
@@ -163,16 +150,24 @@ def main(appid, api_key, api_secret, Spark_url, domain, question):
     ws.appid = appid
     ws.question = question
     ws.domain = domain
+    ws.open_id = open_id
+    ws.temperature = temperature
     ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
 
 
-def sendMessage(APP_ID: str, MESSAGE_ID: str, message):
+def sendMessage(APP_ID: str, MESSAGE_ID: str, open_id, message):
+    appCacheJson = cache.get(":robot_app_key:" + APP_ID)
+    if appCacheJson is None:
+        return None
+    appCache = AppCache(appCacheJson)
+    robot_user_model = get_robot_user_model(open_id)
     global answer
     answer = ""
     global app_id
     app_id = APP_ID
     global message_id
     message_id = MESSAGE_ID
-    question = checklen(getText("user", message))
-    main(appid, api_key, api_secret, Spark_url, domain, question)
+    question = checklen(open_id,getText(open_id, "user", message))
+    main(appCache.robot_appid, appCache.robot_api_key, appCache.robot_api_secret, robot_user_model.robot_spark_url,
+         robot_user_model.robot_domain, robot_user_model.robot_temperature, question, open_id)
     return None

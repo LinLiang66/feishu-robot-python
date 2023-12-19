@@ -1,8 +1,12 @@
 import lark_oapi as lark
 
+from exts import cache
+from model import AppCache
+
 
 # 构建模型切换卡片
-def model_select_card_build() -> str:
+def model_select_card_build(open_id: str) -> str:
+    robot_user_model = get_robot_user_model(open_id)
     card = {
         "elements": [
             {
@@ -17,6 +21,7 @@ def model_select_card_build() -> str:
                         "value": {
                             "text": "domain_version"
                         },
+                        "initial_option": robot_user_model.robot_domain,
                         "options": [
                             {
                                 "text": {
@@ -75,7 +80,8 @@ def model_select_card_build() -> str:
 
 
 # 构建发散切换卡片
-def diverge_select_card_build() -> str:
+def diverge_select_card_build(open_id: str) -> str:
+    robot_user_model = get_robot_user_model(open_id)
     card = {
         "elements": [
             {
@@ -90,6 +96,7 @@ def diverge_select_card_build() -> str:
                         "value": {
                             "text": "temperature"
                         },
+                        "initial_option": str(robot_user_model.robot_temperature),
                         "options": [
                             {
                                 "text": {
@@ -206,7 +213,8 @@ def clear_card_build() -> str:
 
 
 # 构建help卡片
-def help_card_build() -> str:
+def help_card_build(open_id: str) -> str:
+    robot_user_model = get_robot_user_model(open_id)
     card = {
         "elements": [
             {
@@ -279,7 +287,7 @@ def help_card_build() -> str:
                     "value": {
                         "text": "domain_version"
                     },
-                    "initial_option": "generalv3",
+                    "initial_option": robot_user_model.robot_domain,
                     "options": [
                         {
                             "text": {
@@ -333,7 +341,7 @@ def help_card_build() -> str:
                     "value": {
                         "text": "temperature"
                     },
-                    "initial_option": "0.5",
+                    "initial_option": str(robot_user_model.robot_temperature),
                     "options": [
                         {
                             "text": {
@@ -439,3 +447,22 @@ def robot_reminder_card_build(header: str, content: str, note: str) -> str:
         }
     }
     return lark.JSON.marshal(card)
+
+
+# 根据open_id获取robot_user_model
+def get_robot_user_model(open_id: str) -> AppCache:
+    robot_user_model_json = cache.get(":robot_user_model:" + open_id)
+    if robot_user_model_json is None:
+        robot_user_model = AppCache.builder() \
+            .open_id(open_id) \
+            .robot_appid("f4317c24") \
+            .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx") \
+            .robot_api_key("750605805c6e5191737087ec504f600d") \
+            .robot_domain("spark3.1-chat") \
+            .robot_spark_url("ws://spark-api.xf-yun.com/v3.1/chat") \
+            .robot_temperature(0.5) \
+            .build()
+        cache.set(":robot_user_model:" + open_id, robot_user_model.to_dict())
+    else:
+        robot_user_model = AppCache(robot_user_model_json)
+    return robot_user_model

@@ -13,32 +13,24 @@ import requests
 from asgiref.wsgi import WsgiToAsgi
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, jsonify
+
 from lark_oapi.adapter.flask import *
-from flask_caching import Cache
+
 import SparkApi
-from api import reply_message, build_card, get_current_time, do_interactive_card, is_within_five_seconds
+from api import reply_message, build_card, get_current_time, do_interactive_card
 
 from event import MessageReceiveEvent, UrlVerificationEvent, EventManager
-from model import Card
+from exts import cache
+from model import Card, AppCache
 from serverPiluin import message_handle_process
-
-config = {
-    "ERROR": False,  # some Flask specific configs
-    "CACHE_TYPE": "redis",  # Flask-Caching related configs
-    "CACHE_REDIS_HOST": '101.227.48.127',
-    "CACHE_REDIS_PORT": 6379,
-    "CACHE_REDIS_PASSWORD": 'Lin927919732',
-    "CACHE_REDIS_DB": 0,
-
-}
 
 # load env parameters form file named .env
 load_dotenv(find_dotenv())
 
 app = Flask(__name__)
 asgi_app = WsgiToAsgi(app)
-app.config.from_mapping(config)
-cache = Cache(app)
+
+cache.init_app(app)
 
 config_module = importlib.import_module("config")
 config_instance = config_module.Config()
@@ -52,6 +44,7 @@ APP_SECRET = os.getenv("APP_SECRET")
 VERIFICATION_TOKEN = os.getenv("VERIFICATION_TOKEN")
 ENCRYPT_KEY = os.getenv("ENCRYPT_KEY")
 LARK_HOST = os.getenv("LARK_HOST")
+
 event_manager = EventManager()
 
 # 注册卡片回调
@@ -60,9 +53,8 @@ card_handler = lark_oapi.CardActionHandler.builder(ENCRYPT_KEY, VERIFICATION_TOK
     .build()
 
 
-async def background_worker(app_id: str, message_id: str, message) -> None:
-    SparkApi.sendMessage(app_id, message_id, message)
-    pass
+async def background_worker(app_id: str, message_id: str, open_id: str, message) -> None:
+    SparkApi.sendMessage(app_id, message_id, open_id, message)
 
 
 @event_manager.register("url_verification")
@@ -75,20 +67,18 @@ def request_url_verify_handler(req_data: UrlVerificationEvent):
 
 @event_manager.register("im.message.receive_v1")
 def message_receive_event_handler(req_data: MessageReceiveEvent):
+    cache.set(":message_event:" + req_data.header.event_id, "Message has been handle", timeout=25200)
     message = req_data.event.message
     if message.message_type != "text":
         logging.warn("Other types of messages have not been processed yet")
         return jsonify()
     app_id = req_data.header.app_id
-
     message_id = req_data.event.message.message_id
-
     data = json.loads(message.content)
     # echo text message
     text_content = data["text"]
-    # cache.set(req_data.event.sender.sender_id.open_id, text_content, timeout=18)
     # 进入消息处理流程，并获取回复内容
-    handle_content = message_handle_process(text_content)
+    handle_content = message_handle_process(req_data)
     # 命中预设流程，进行回复
     if handle_content.mate:
         card_content = handle_content.card
@@ -103,7 +93,8 @@ def message_receive_event_handler(req_data: MessageReceiveEvent):
     message_boy = reply_message(app_id, message_id, card_content, "interactive")
     if message_boy.success():
         # 异步调用大模型实现打字机问答功能
-        asyncio.create_task(background_worker(app_id, message_boy.data.message_id, text_content))
+        asyncio.create_task(
+            background_worker(app_id, message_boy.data.message_id, req_data.event.sender.sender_id.open_id, text_content))
 
     return jsonify()
 
@@ -120,44 +111,62 @@ def msg_error_handler(ex):
 
 @app.route("/<appid>", methods=["POST"])
 async def callback_event_handler(appid):
-    print(appid)
-    event_handler, event = event_manager.get_handler_with_event(VERIFICATION_TOKEN, ENCRYPT_KEY)
-    if cache.get(":message_event:" + event.header.event_id) is None:
-        cache.set(":message_event:" + event.header.event_id, "Message has been handle", timeout=25200)
+    appCacheJson = cache.get(":robot_app_key:" + appid)
+    if appCacheJson is None:
+        return jsonify({"success": False, "message": "APPID is invalid", "code": 200,
+                        "timestamp": int(time.time() * 1000)})
+    appCache = AppCache(appCacheJson)
+    event_handler, event = event_manager.get_handler_with_event(appCache.verification_token, appCache.encrypt_key)
+
+    if event.event_type() == "url_verification":
         return event_handler(event)
-    return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
+    elif cache.get(":message_event:" + event.header.event_id) is None:
+        return event_handler(event)
+
+    return jsonify({"success": False, "message": "Message has been handle", "code": 200,
                     "timestamp": int(time.time() * 1000)})
 
 
 @app.route("/card/<appid>", methods=["POST"])
 async def card(appid):
-    print(appid)
+    appCacheJson = cache.get(":robot_app_key:" + appid)
+    if appCacheJson is None:
+        return jsonify({"success": False, "message": "APPID is invalid", "code": 200,
+                        "timestamp": int(time.time() * 1000)})
+    appCache = AppCache(appCacheJson)
+
     dict_data = request.get_json()
     callback_type = dict_data.get("type")
     # only verification data has callback_type, else is event
     if callback_type == "url_verification":
         # url verification, just need return challenge
-        if dict_data.get("token") != VERIFICATION_TOKEN:
+        if dict_data.get("token") != appCache.verification_token:
             raise Exception("VERIFICATION_TOKEN is invalid")
         return jsonify({"challenge": dict_data.get("challenge")})
 
     data = Card(dict_data)
+
     if cache.get(":card_event:" + data.open_message_id) is None:
-        cache.set(":card_event:" + data.open_message_id, "Event has been handle", timeout=25200)
         resp = do_interactive_card(data)
         return resp
-    return jsonify({"success": False, "message": "Message has been handle!！", "code": 200,
+    return jsonify({"success": False, "message": "Event has been handle", "code": 200,
                     "timestamp": int(time.time() * 1000)})
 
 
 if __name__ == "__main__":
-    key = {
-        "APP_ID": "cli_a5f2a42a243f100b",
-        "APP_SECRET": "zBBkBSVaLQV1Es8LYarDmeaRfKhp5reQ",
-        "VERIFICATION_TOKEN": "EcXED5wrtPhR9nGYh9PRYdDWHpIaTP2j",
-        "ENCRYPT_KEY": "Lin927919732Liang"
-    }
-    cache.set(":robot_key:cli_a5f2a42a243f100b", json.dumps(key))
-    print(cache.get(":robot_key:cli_a5f2a42a243f100b"))
-    # init()
-    app.run(host="0.0.0.0", port=8081, debug=False)
+    # key = AppCache.builder() \
+    #     .appid("cli_a5f2a42a243f100b") \
+    #     .app_secret("zBBkBSVaLQV1Es8LYarDmeaRfKhp5reQ") \
+    #     .app_role_type(1) \
+    #     .verification_token("EcXED5wrtPhR9nGYh9PRYdDWHpIaTP2j") \
+    #     .encrypt_key("Lin927919732Liang") \
+    #     .robot_appid("f4317c24") \
+    #     .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx") \
+    #     .robot_api_key("750605805c6e5191737087ec504f600d") \
+    #     .robot_domain("generalv3") \
+    #     .robot_spark_url("ws://spark-api.xf-yun.com/v3.1/chat") \
+    #     .robot_temperature(1) \
+    #     .build()
+    # cache.set(":robot_app_key:cli_a5f2a42a243f100b", key.to_dict())
+    # print(cache.get(":robot_app_key:cli_a5f2a42a243f100b"))
+    app.run(host="0.0.0.0", port=81, debug=False)

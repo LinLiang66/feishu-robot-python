@@ -7,10 +7,8 @@ import typing as t
 
 from lark_oapi import AESCipher
 
-from api import is_within_five_seconds
-from exts import cache
 from utils import dict_2_obj
-from flask import request, jsonify
+from flask import request
 
 
 class Event(object):
@@ -87,6 +85,7 @@ class EventManager(object):
     def get_handler_with_event(token, encrypt_key):
         dict_data = json.loads(request.data)
         dict_data = EventManager._decrypt_data(encrypt_key, dict_data)
+
         callback_type = dict_data.get("type")
         # only verification data has callback_type, else is event
         if callback_type == "url_verification":
