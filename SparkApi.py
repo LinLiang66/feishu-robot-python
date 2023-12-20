@@ -85,7 +85,7 @@ def on_open(ws):
 
 def run(ws, *args):
     data = json.dumps(gen_params(appid=ws.appid, domain=ws.domain, temperature=ws.temperature, question=ws.question,
-                                 open_id=ws.open_id))
+                                 user_id=ws.user_id))
     ws.send(data)
 
 
@@ -117,17 +117,18 @@ def on_message(ws, message):
             updateTextCard(app_id, message_id, card_content)
 
 
-def gen_params(appid, domain, temperature, question, open_id):
+def gen_params(appid, domain, temperature, question, user_id):
     """
     通过appid和用户的提问来生成请参数
     """
     data = {
         "header": {
             "app_id": appid,
-            "uid": open_id
+            "uid": user_id
         },
         "parameter": {
             "chat": {
+                "chat_id": user_id,
                 "domain": domain,
                 "temperature": temperature,
                 "max_tokens": 2048
@@ -142,7 +143,7 @@ def gen_params(appid, domain, temperature, question, open_id):
     return data
 
 
-def main(appid, api_key, api_secret, Spark_url, domain, temperature, question, open_id):
+def main(appid, api_key, api_secret, Spark_url, domain, temperature, question, user_id):
     wsParam = Ws_Param(appid, api_key, api_secret, Spark_url)
     websocket.enableTrace(False)
     wsUrl = wsParam.create_url()
@@ -150,24 +151,24 @@ def main(appid, api_key, api_secret, Spark_url, domain, temperature, question, o
     ws.appid = appid
     ws.question = question
     ws.domain = domain
-    ws.open_id = open_id
+    ws.user_id = user_id
     ws.temperature = temperature
     ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
 
 
-def sendMessage(APP_ID: str, MESSAGE_ID: str, open_id, message):
+def sendMessage(APP_ID: str, MESSAGE_ID: str, user_id, message):
     appCacheJson = cache.get(":robot_app_key:" + APP_ID)
     if appCacheJson is None:
         return None
     appCache = AppCache(appCacheJson)
-    robot_user_model = get_robot_user_model(open_id)
+    robot_user_model = get_robot_user_model(user_id)
     global answer
     answer = ""
     global app_id
     app_id = APP_ID
     global message_id
     message_id = MESSAGE_ID
-    question = checklen(open_id,getText(open_id, "user", message))
+    question = checklen(user_id, getText(user_id, "user", message))
     main(appCache.robot_appid, appCache.robot_api_key, appCache.robot_api_secret, robot_user_model.robot_spark_url,
-         robot_user_model.robot_domain, robot_user_model.robot_temperature, question, open_id)
+         robot_user_model.robot_domain, robot_user_model.robot_temperature, question, user_id)
     return None

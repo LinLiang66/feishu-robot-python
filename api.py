@@ -9,12 +9,9 @@ import lark_oapi as lark
 from lark_oapi.api.im.v1 import *
 
 from exts import cache
-from model import Card, AppCache
+from model import Card, AppCache, PrivacyCardMessageRequest, PrivacyCardMessageRequestBody
 from redisServer import redis
 from serverPiluin import card_handle_process
-
-
-# text = []
 
 
 # 获取现行时间 yyyy-MM-dd HH:mm:ss格式
@@ -237,6 +234,40 @@ def send_message(app_id: str, receive_id_type: str, receive_id: str, msg_type: s
                       .msg_type(msg_type)
                       .content(content)
                       .uuid(str(uuid.uuid4()))
+                      .build()) \
+        .build()
+
+    # 发起请求
+    response: CreateMessageResponse = client.im.v1.message.create(request)
+
+    # 处理失败返回
+    if not response.success():
+        lark.logger.error(
+            f"client.im.v1.message.create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
+        return response.success()
+
+    # 处理业务结果
+    return response.success()
+
+
+# 通用发送消息
+def send_privacy_card_message(app_id: str, chat_id: str, user_id: str, open_id: str,  msg_type: str,
+                              content: str) -> bool:
+    # 创建client
+    client = lark.Client.builder() \
+        .app_id(app_id) \
+        .app_secret(get_app_secret(app_id)) \
+        .log_level(lark.LogLevel.ERROR) \
+        .build()
+
+    # 构造请求对象
+    request: PrivacyCardMessageRequest = PrivacyCardMessageRequest.builder() \
+        .request_body(PrivacyCardMessageRequestBody.builder() \
+                      .chat_id(chat_id) \
+                      .user_id(user_id) \
+                      .open_id(open_id) \
+                      .msg_type(msg_type)
+                      .card(json.loads(content))
                       .build()) \
         .build()
 
@@ -519,8 +550,8 @@ def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> 
 
 # length = 0
 
-def getText(open_id, role, content):
-    text = redis.get(":message_context:" + open_id)
+def getText(user_id, role, content):
+    text = redis.get(":message_context:" + user_id)
     if text is None:
         text = []
     jsoncon = {"role": role, "content": content}
@@ -537,8 +568,8 @@ def getlength(text):
     return length
 
 
-def checklen(open_id, text):
+def checklen(user_id, text):
     while getlength(text) > 8000:
         del text[0]
-    redis.set(":message_context:" + open_id, text)
+    redis.set(":message_context:" + user_id, text)
     return text

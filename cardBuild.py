@@ -5,9 +5,13 @@ from model import AppCache
 
 
 # 构建模型切换卡片
-def model_select_card_build(open_id: str) -> str:
-    robot_user_model = get_robot_user_model(open_id)
+def model_select_card_build(user_id: str) -> str:
+    robot_user_model = get_robot_user_model(user_id)
     card = {
+        "config": {
+            "enable_forward": False,
+            "update_multi": False
+        },
         "elements": [
             {
                 "tag": "action",
@@ -80,9 +84,13 @@ def model_select_card_build(open_id: str) -> str:
 
 
 # 构建发散切换卡片
-def diverge_select_card_build(open_id: str) -> str:
-    robot_user_model = get_robot_user_model(open_id)
+def diverge_select_card_build(user_id: str) -> str:
+    robot_user_model = get_robot_user_model(user_id)
     card = {
+        "config": {
+            "enable_forward": False,
+            "update_multi": False
+        },
         "elements": [
             {
                 "tag": "action",
@@ -103,7 +111,7 @@ def diverge_select_card_build(open_id: str) -> str:
                                     "tag": "plain_text",
                                     "content": "严谨"
                                 },
-                                "value": "1"
+                                "value": "1.0"
                             },
                             {
                                 "text": {
@@ -164,6 +172,17 @@ def diverge_select_card_build(open_id: str) -> str:
 # 构建清空上下文卡片
 def clear_card_build() -> str:
     card = {
+        "config": {
+            "enable_forward": False,
+            "update_multi": False
+        },
+        "header": {
+            "template": "indigo",
+            "title": {
+                "content": "🆑 机器人提醒",
+                "tag": "plain_text"
+            }
+        },
         "elements": [
             {
                 "tag": "action",
@@ -200,22 +219,26 @@ def clear_card_build() -> str:
                     }
                 ]
             }
-        ],
-        "header": {
-            "template": "indigo",
-            "title": {
-                "content": "🆑 机器人提醒",
-                "tag": "plain_text"
-            }
-        }
+        ]
     }
     return lark.JSON.marshal(card)
 
 
 # 构建help卡片
-def help_card_build(open_id: str) -> str:
-    robot_user_model = get_robot_user_model(open_id)
+def help_card_build(user_id: str) -> str:
+    robot_user_model = get_robot_user_model(user_id)
     card = {
+        "config": {
+            "enable_forward": False,
+            "update_multi": False
+        },
+        "header": {
+            "template": "blue",
+            "title": {
+                "content": "🎒需要帮助吗？",
+                "tag": "plain_text"
+            }
+        },
         "elements": [
             {
                 "tag": "div",
@@ -348,7 +371,7 @@ def help_card_build(open_id: str) -> str:
                                 "tag": "plain_text",
                                 "content": "严谨"
                             },
-                            "value": "1"
+                            "value": "1.0"
                         },
                         {
                             "text": {
@@ -408,14 +431,7 @@ def help_card_build(open_id: str) -> str:
                     }
                 }
             }
-        ],
-        "header": {
-            "template": "blue",
-            "title": {
-                "content": "🎒需要帮助吗？",
-                "tag": "plain_text"
-            }
-        }
+        ]
     }
     return lark.JSON.marshal(card)
 
@@ -423,6 +439,10 @@ def help_card_build(open_id: str) -> str:
 # 构建通用机器人提醒卡片
 def robot_reminder_card_build(header: str, content: str, note: str) -> str:
     card = {
+        "config": {
+            "enable_forward": False,
+            "update_multi": False
+        },
         "elements": [
             {
                 "tag": "markdown",
@@ -449,12 +469,12 @@ def robot_reminder_card_build(header: str, content: str, note: str) -> str:
     return lark.JSON.marshal(card)
 
 
-# 根据open_id获取robot_user_model
-def get_robot_user_model(open_id: str) -> AppCache:
-    robot_user_model_json = cache.get(":robot_user_model:" + open_id)
+# 根据user_id获取robot_user_model
+def get_robot_user_model(user_id: str) -> AppCache:
+    robot_user_model_json = cache.get(":robot_user_model:" + user_id)
     if robot_user_model_json is None:
         robot_user_model = AppCache.builder() \
-            .open_id(open_id) \
+            .user_id(user_id) \
             .robot_appid("f4317c24") \
             .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx") \
             .robot_api_key("750605805c6e5191737087ec504f600d") \
@@ -462,7 +482,7 @@ def get_robot_user_model(open_id: str) -> AppCache:
             .robot_spark_url("ws://spark-api.xf-yun.com/v3.1/chat") \
             .robot_temperature(0.5) \
             .build()
-        cache.set(":robot_user_model:" + open_id, robot_user_model.to_dict())
+        cache.set(":robot_user_model:" + user_id, robot_user_model.to_dict())
     else:
         robot_user_model = AppCache(robot_user_model_json)
     return robot_user_model

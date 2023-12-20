@@ -1,8 +1,92 @@
 import json
-from typing import Dict, Optional, Any
 
 from lark_oapi.core.construct import init
 from lark_oapi.core.model import RawRequest
+
+from typing import *
+
+from lark_oapi.core.enum import HttpMethod, AccessTokenType
+from lark_oapi.core.model import BaseRequest
+
+T = TypeVar('T')
+
+
+class PrivacyCardMessageRequestBody(object):
+    _types = {
+        "chat_id": str,
+        "user_id": str,
+        "open_id": str,
+        "msg_type": str,
+        "card": object
+    }
+
+    def __init__(self, d=None):
+        self.chat_id: Optional[str] = None
+        self.user_id: Optional[str] = None
+        self.open_id: Optional[str] = None
+        self.msg_type: Optional[str] = "interactive"
+        self.card: Optional[object] = None
+        init(self, d, self._types)
+
+    @staticmethod
+    def builder() -> "PrivacyCardMessageRequestBodyBuilder":
+        return PrivacyCardMessageRequestBodyBuilder()
+
+
+class PrivacyCardMessageRequestBodyBuilder(object):
+    def __init__(self) -> None:
+        self._privacy_card_message_request_body = PrivacyCardMessageRequestBody()
+
+    def chat_id(self, chat_id: str) -> "PrivacyCardMessageRequestBodyBuilder":
+        self._privacy_card_message_request_body.chat_id = chat_id
+        return self
+
+    def user_id(self, user_id: str) -> "PrivacyCardMessageRequestBodyBuilder":
+        self._privacy_card_message_request_body.user_id = user_id
+        return self
+
+    def open_id(self, open_id: str) -> "PrivacyCardMessageRequestBodyBuilder":
+        self._privacy_card_message_request_body.content = open_id
+        return self
+
+    def msg_type(self, msg_type: str) -> "PrivacyCardMessageRequestBodyBuilder":
+        self._privacy_card_message_request_body.content = msg_type
+        return self
+
+    def card(self, card: object) -> "PrivacyCardMessageRequestBodyBuilder":
+        self._privacy_card_message_request_body.card = card
+        return self
+
+    def build(self) -> "PrivacyCardMessageRequestBody":
+        return self._privacy_card_message_request_body
+
+
+class PrivacyCardMessageRequest(BaseRequest):
+    def __init__(self) -> None:
+        super().__init__()
+        self.request_body: Optional[PrivacyCardMessageRequestBody] = None
+
+    @staticmethod
+    def builder() -> "PrivacyCardMessageRequestBuilder":
+        return PrivacyCardMessageRequestBuilder()
+
+
+class PrivacyCardMessageRequestBuilder(object):
+
+    def __init__(self) -> None:
+        privacy_card_message_request = PrivacyCardMessageRequest()
+        privacy_card_message_request.http_method = HttpMethod.POST
+        privacy_card_message_request.uri = "/open-apis/ephemeral/v1/send"
+        privacy_card_message_request.token_types = {AccessTokenType.TENANT, AccessTokenType.USER}
+        self._privacy_card_message_request: PrivacyCardMessageRequest = privacy_card_message_request
+
+    def request_body(self, request_body: PrivacyCardMessageRequestBody) -> "PrivacyCardMessageRequestBuilder":
+        self._privacy_card_message_request.request_body = request_body
+        self._privacy_card_message_request.body = request_body
+        return self
+
+    def build(self) -> PrivacyCardMessageRequest:
+        return self._privacy_card_message_request
 
 
 class Action(object):
@@ -42,7 +126,7 @@ class AppCache(object):
     _types = {}
 
     def __init__(self, d=None) -> None:
-        self.open_id: Optional[str] = None
+        self.user_id: Optional[str] = None
         self.appid: Optional[str] = None
         self.app_secret: Optional[str] = None
         self.app_role_type: Optional[float] = 0
@@ -62,7 +146,7 @@ class AppCache(object):
 
     def to_dict(self):
         return {
-            'open_id': self.open_id,
+            'user_id': self.user_id,
             'appid': self.appid,
             'app_secret': self.app_secret,
             'app_role_type': self.app_role_type,
@@ -81,8 +165,8 @@ class AppCacheBuilder(object):
     def __init__(self) -> None:
         self._app_cache = AppCache()
 
-    def open_id(self, open_id: str) -> "AppCacheBuilder":
-        self._app_cache.open_id = open_id
+    def user_id(self, user_id: str) -> "AppCacheBuilder":
+        self._app_cache.user_id = user_id
         return self
 
     def appid(self, appid: str) -> "AppCacheBuilder":
@@ -131,3 +215,86 @@ class AppCacheBuilder(object):
 
     def build(self) -> "AppCache":
         return self._app_cache
+
+
+# 卡片构造
+class WinCard(object):
+    _types = {
+        "card": str,
+        "mate": bool,
+        "continue_processing": bool,
+    }
+
+    def __init__(self, d=None):
+        self.card: Optional[str] = None
+        self.mate: Optional[bool] = False
+        self.continue_processing: Optional[bool] = True
+        init(self, d, self._types)
+
+    @staticmethod
+    def builder() -> "WinCardBuilder":
+        return WinCardBuilder()
+
+    def to_json(self) -> str:
+        return json.dumps(self, default=lambda o: o.dict, ensure_ascii=False)
+
+
+class WinCardBuilder(object):
+    def __init__(self) -> None:
+        self._win_card = WinCard()
+
+    def card(self, card: str) -> "WinCardBuilder":
+        self._win_card.card = card
+        return self
+
+    def mate(self, mate: bool) -> "WinCardBuilder":
+        self._win_card.mate = mate
+        return self
+
+    def continue_processing(self, continue_processing: bool) -> "WinCardBuilder":
+        self._win_card.continue_processing = continue_processing
+        return self
+
+    def build(self) -> "WinCard":
+        return self._win_card
+
+
+# 条码分配信息
+class BarCodeMessage(object):
+    _types = {}
+
+    def __init__(self, d=None) -> None:
+        self.mailNo: Optional[str] = None
+        self.customerID: Optional[str] = None
+        self.oneTierBranchCode: Optional[str] = None
+        self.twoTierBranchCode: Optional[str] = None
+        self.twoTierCodeName: Optional[str] = None
+        self.twoTierCodeBranchCode: Optional[str] = None
+        self.customerName: Optional[str] = None
+        self.oneTierBranchName: Optional[str] = None
+        self.twoTierBranchName: Optional[str] = None
+        init(self, d, self._types)
+
+
+# Http请求回参
+class HttpResponse(object):
+    _types = {
+        "result": T
+    }
+
+    def __init__(self, d: T = None) -> None:
+        self.success: Optional[bool] = None
+        self.message: Optional[str] = None
+        self.code: Optional[int] = None
+        self.timestamp: Optional[int] = None
+        self.result: Optional[T] = None
+        init(self, d, self._types)
+
+    def to_dict(self):
+        return {
+            'success': self.success,
+            'message': self.message,
+            'code': self.code,
+            'timestamp': self.timestamp,
+            'result': self.result,
+        }
