@@ -17,8 +17,7 @@ from flask import Flask, jsonify
 from lark_oapi.adapter.flask import *
 
 import SparkApi
-from api import reply_message, build_card, get_current_time, do_interactive_card, \
-    send_privacy_card_message
+from api import reply_message, build_card, get_current_time, do_interactive_card, send_privacy_card_message
 from cardBuild import help_card_build
 
 from event import MessageReceiveEvent, UrlVerificationEvent, EventManager, MemberDeletedReceiveEvent, \

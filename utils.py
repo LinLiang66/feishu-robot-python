@@ -128,12 +128,12 @@ def distribute(waybill_no):
 
 
 if __name__ == "__main__":
-    BarCodeMessage = TypeVar('BarCodeMessage')
+
     response: RawResponse = distribute("433624511290817")
 
     print(str(response.content, UTF_8))
 
-    res: HttpResponse[BarCodeMessage] = JSON.unmarshal(str(response.content, UTF_8), HttpResponse[BarCodeMessage])
+    res: HttpResponse = JSON.unmarshal(str(response.content, UTF_8), HttpResponse)
     # res: HttpResponse(d=barcode_message) = JSON.unmarshal(str(response.content, UTF_8), HttpResponse)
     print(res.to_dict())
-    print(res.result)
+    print(res.result.mailNo)

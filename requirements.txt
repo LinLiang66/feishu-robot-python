@@ -1,8 +1,12 @@
-Flask~=2.3.2
+Flask==2.3.2
 python-dotenv~=1.0.0
 requests~=2.31.0
+pycryptodome
+Werkzeug<3
 websocket-client~=1.7.0
+lark-oapi==1.0.17
 asgiref~=3.7.2
+redis~=5.0.1
 pandas~=2.1.4
 Jinja2~=3.1.2
-lark-oapi==1.0.17
+flask_caching~=2.1.0

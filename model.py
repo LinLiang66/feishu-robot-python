@@ -8,8 +8,6 @@ from typing import *
 from lark_oapi.core.enum import HttpMethod, AccessTokenType
 from lark_oapi.core.model import BaseRequest
 
-T = TypeVar('T')
-
 
 class PrivacyCardMessageRequestBody(object):
     _types = {
@@ -276,18 +274,20 @@ class BarCodeMessage(object):
         init(self, d, self._types)
 
 
+
+
 # Http请求回参
 class HttpResponse(object):
     _types = {
-        "result": T
+        "result": BarCodeMessage
     }
 
-    def __init__(self, d: T = None) -> None:
+    def __init__(self, d=None) -> None:
         self.success: Optional[bool] = None
         self.message: Optional[str] = None
         self.code: Optional[int] = None
         self.timestamp: Optional[int] = None
-        self.result: Optional[T] = None
+        self.result: Optional[BarCodeMessage] = None
         init(self, d, self._types)
 
     def to_dict(self):
