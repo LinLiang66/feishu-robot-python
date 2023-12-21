@@ -8,7 +8,6 @@ import logging
 
 import time
 
-
 import requests
 from asgiref.wsgi import WsgiToAsgi
 from dotenv import load_dotenv, find_dotenv
@@ -82,40 +81,55 @@ def message_receive_event_handler(req_data: MessageReceiveEvent):
         return jsonify({"success": False, "message": "Message has been handle", "code": 200,
                         "timestamp": int(time.time() * 1000)})
     cache.set(":message_event:" + message_id, "Message has been handle", timeout=25200)
+    app_id = req_data.header.app_id
     message = req_data.event.message
-    if message.message_type != "text":
+    data = json.loads(message.content)
+    print("我是消息类型=======================" + message.message_type)
+    if message.message_type == "text":
+        # echo text message
+        text_content = data["text"]
+        # 进入消息处理流程，并获取回复内容
+        handle_content = message_handle_process(req_data)
+        # 命中预设场景流程，进行回复，分单聊、群聊
+        if handle_content.mate:
+            card_content = handle_content.card
+            if req_data.event.message.chat_type == "group":
+                send_privacy_card_message(app_id, req_data.event.message.chat_id,
+                                          req_data.event.sender.sender_id.user_id,
+                                          req_data.event.sender.sender_id.open_id, "interactive",
+                                          card_content)
+            elif req_data.event.message.chat_type == "p2p":
+                reply_message(app_id, message_id, card_content, "interactive")
+
+        # 命中无需继续往下处理，直接返回
+        if not handle_content.continue_processing:
+            return jsonify()
+        # 构造首次响应卡片
+        card_content = build_card("处理结果", get_current_time(), "", False, True)
+        # 回复空卡片消息，并拿到新的message_id
+        message_boy = reply_message(app_id, message_id, card_content, "interactive")
+        if message_boy.success():
+            # 异步调用大模型实现打字机问答功能
+            asyncio.create_task(
+                async_iFlytek_sendMessage(app_id, message_boy.data.message_id, req_data.event.sender.sender_id.user_id,
+                                          text_content))
+        return jsonify()
+    elif message.message_type == "post":
+        text_content = ""
+        image_key = []
+        for datacontent in data["content"]:
+            for content in datacontent:
+                if content["tag"] == "text":
+                    text_content += content["text"]
+                elif content["tag"] == "img":
+                    image_key.append(content["image_key"])
+        print("我是消息原文================" + text_content)
+        print("我是图片key================")
+        print(image_key)
+        return jsonify()
+    else:
         logging.error("Other types of messages have not been processed yet")
         return jsonify()
-    app_id = req_data.header.app_id
-
-    data = json.loads(message.content)
-    # echo text message
-    text_content = data["text"]
-    # 进入消息处理流程，并获取回复内容
-    handle_content = message_handle_process(req_data)
-    # 命中预设场景流程，进行回复，分单聊、群聊
-    if handle_content.mate:
-        card_content = handle_content.card
-        if req_data.event.message.chat_type == "group":
-            send_privacy_card_message(app_id, req_data.event.message.chat_id, req_data.event.sender.sender_id.user_id,
-                                      req_data.event.sender.sender_id.open_id, "interactive",
-                                      card_content)
-        elif req_data.event.message.chat_type == "p2p":
-            reply_message(app_id, message_id, card_content, "interactive")
-
-    # 命中无需继续往下处理，直接返回
-    if not handle_content.continue_processing:
-        return jsonify()
-    # 构造首次响应卡片
-    card_content = build_card("处理结果", get_current_time(), "", False, True)
-    # 回复空卡片消息，并拿到新的message_id
-    message_boy = reply_message(app_id, message_id, card_content, "interactive")
-    if message_boy.success():
-        # 异步调用大模型实现打字机问答功能
-        asyncio.create_task(
-            async_iFlytek_sendMessage(app_id, message_boy.data.message_id, req_data.event.sender.sender_id.user_id,
-                                      text_content))
-    return jsonify()
 
 
 @app.errorhandler
@@ -136,7 +150,6 @@ async def callback_event_handler(appid):
                         "timestamp": int(time.time() * 1000)})
     appCache = AppCache(appCacheJson)
     event_handler, event = event_manager.get_handler_with_event(appCache.verification_token, appCache.encrypt_key)
-    print(event.header.app_id)
     return event_handler(event)
 
 

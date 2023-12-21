@@ -10,7 +10,7 @@ from lark_oapi.api.im.v1 import *
 
 from exts import cache
 from model import Card, AppCache, PrivacyCardMessageRequest, PrivacyCardMessageRequestBody
-from redisServer import redis
+from util.redisServer import redis
 from serverPiluin import card_handle_process
 
 
@@ -44,7 +44,7 @@ def _upload_image(app_id: str) -> str:
         .log_level(lark.LogLevel.ERROR) \
         .build()
 
-    file = open("alert.png", "rb")
+    file = open("E:\\桌面\\推广.jpg", "rb")
     request = CreateImageRequest.builder() \
         .request_body(CreateImageRequestBody.builder()
                       .image_type("message")
@@ -57,7 +57,6 @@ def _upload_image(app_id: str) -> str:
     if not response.success():
         raise Exception(
             f"client.im.v1.image.create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-
     return response.data.image_key
 
 
@@ -251,7 +250,7 @@ def send_message(app_id: str, receive_id_type: str, receive_id: str, msg_type: s
 
 
 # 通用发送消息
-def send_privacy_card_message(app_id: str, chat_id: str, user_id: str, open_id: str,  msg_type: str,
+def send_privacy_card_message(app_id: str, chat_id: str, user_id: str, open_id: str, msg_type: str,
                               content: str) -> bool:
     # 创建client
     client = lark.Client.builder() \
@@ -573,3 +572,5 @@ def checklen(user_id, text):
         del text[0]
     redis.set(":message_context:" + user_id, text)
     return text
+
+

@@ -1,15 +1,7 @@
-import base64
-import json
+from lark_oapi import logger
 
-
-from lark_oapi import BaseRequest, RawResponse, JSON, UTF_8, logger, HttpMethod
-from requests_toolbelt import MultipartEncoder
-
-import requests
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-
-from model import HttpResponse, BarCodeMessage
+from util.yundaModel import HttpResponse
+from util.yundaApi import query_bar_code_record
 
 
 class Obj(dict):
@@ -26,101 +18,15 @@ def dict_2_obj(d: dict):
     return Obj(d)
 
 
-class Http(object):
-
-    @staticmethod
-    def execute(req: BaseRequest) -> RawResponse:
-        data = req.body
-        if data is not None and not isinstance(data, MultipartEncoder):
-            data = JSON.marshal(req.body).encode(UTF_8)
-
-        response = requests.request(
-            str(req.http_method.name),
-            req.uri,
-            headers=req.headers,
-            params=req.queries,
-            data=data,
-            timeout=None,
-        )
-
-        logger.debug(f"{str(req.http_method.name)} {req.uri} {response.status_code}, "
-                     f"headers: {JSON.marshal(req.headers)}, "
-                     f"params: {JSON.marshal(req.queries)}, "
-                     f"body: {str(data, UTF_8) if isinstance(data, bytes) else data}")
-
-        resp = RawResponse()
-        resp.status_code = response.status_code
-        resp.headers = dict(response.headers)
-        resp.content = response.content
-
-        return resp
-
-
-class AESCipher:
-    def __init__(self):
-        self.aes_key = None
-
-    @staticmethod
-    def encrypt(content, aes_key):
-        if not content:
-            print("AES encrypt: the content is null!")
-            return None
-        if len(aes_key) == 16:
-            try:
-                cipher = AES.new(aes_key.encode(), AES.MODE_ECB)
-                encrypted = cipher.encrypt(pad(content.encode(), AES.block_size))
-                return base64.b64encode(encrypted).decode()
-            except Exception as e:
-                print("AES encrypt exception:", e)
-                raise RuntimeError(e)
-        else:
-            print("AES encrypt: the aesKey is null or error!")
-            return None
-
-    @staticmethod
-    def decrypt(content, aes_key):
-        if not content:
-            print("AES decrypt: the content is null!")
-            return None
-        if len(aes_key) == 16:
-            try:
-                cipher = AES.new(aes_key.encode(), AES.MODE_ECB)
-                decrypted = unpad(cipher.decrypt(base64.b64decode(content)), AES.block_size)
-                return decrypted.decode()
-            except Exception as e:
-                print("AES decrypt exception:", e)
-                raise RuntimeError(e)
-        else:
-            print("AES decrypt: the aesKey is null or error!")
-            return None
-
-
-def distribute(waybill_no):
-    body = {"waybillNo": waybill_no}
-    aes_cipher = AESCipher()
-    encrypted_data = aes_cipher.encrypt(json.dumps(body), "YvIOPlG2lrJGJ5ar")
-    boy = {"logisticsInterface": encrypted_data,
-           "partnerCode": "qihang"}
-
-    # 构造请求对象
-    request: BaseRequest = BaseRequest.builder() \
-        .uri("https://qihang.yundasys.com/" + "manager/out/distribute") \
-        .http_method(HttpMethod.POST) \
-        .body(boy) \
-        .headers({"Content-Type": "application/json"}) \
-        .build()
-
-    # 发起请求
-    resp: RawResponse = Http.execute(request)
-    res: HttpResponse = JSON.unmarshal(str(resp.content, UTF_8), HttpResponse)
-    if res.success:
-        res.result = BarCodeMessage(res.result)
-    return res
-
-
 if __name__ == "__main__":
-    response: HttpResponse = distribute("433624511290817")
+    response: HttpResponse = query_bar_code_record("433624511290817")
 
     print(response.to_dict())
+    if response.success:
+        print(response.result.mailNo)
 
-    print(response.result.mailNo)
+    else:
+        logger.error(f"method:query_bar_code_record , "
+                     f"code: {response.code}, "
+                     f"success: {response.success}, "
+                     f"message: {response.message}")

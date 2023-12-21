@@ -6,7 +6,7 @@ from event import MessageReceiveEvent
 from exts import cache
 
 from model import Card, WinCard
-from redisServer import redis
+from util.redisServer import redis
 
 
 # 消息意图处理程序
