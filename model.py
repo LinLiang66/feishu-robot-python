@@ -273,13 +273,24 @@ class BarCodeMessage(object):
         self.twoTierBranchName: Optional[str] = None
         init(self, d, self._types)
 
-
+    def to_dict(self):
+        return {
+            'mailNo': self.mailNo,
+            'customerID': self.customerID,
+            'oneTierBranchCode': self.oneTierBranchCode,
+            'twoTierBranchCode': self.twoTierBranchCode,
+            'twoTierCodeName': self.twoTierCodeName,
+            'twoTierCodeBranchCode': self.twoTierCodeBranchCode,
+            'customerName': self.customerName,
+            'oneTierBranchName': self.oneTierBranchName,
+            'twoTierBranchName': self.twoTierBranchName,
+        }
 
 
 # Http请求回参
 class HttpResponse(object):
     _types = {
-        "result": BarCodeMessage
+
     }
 
     def __init__(self, d=None) -> None:
@@ -287,7 +298,7 @@ class HttpResponse(object):
         self.message: Optional[str] = None
         self.code: Optional[int] = None
         self.timestamp: Optional[int] = None
-        self.result: Optional[BarCodeMessage] = None
+        self.result: Optional[object] = None
         init(self, d, self._types)
 
     def to_dict(self):

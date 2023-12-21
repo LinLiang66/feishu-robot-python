@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import TypeVar
+
 
 from lark_oapi import BaseRequest, RawResponse, JSON, UTF_8, logger, HttpMethod
 from requests_toolbelt import MultipartEncoder
@@ -9,8 +9,7 @@ import requests
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-from model import HttpResponse
-
+from model import HttpResponse, BarCodeMessage
 
 
 class Obj(dict):
@@ -25,13 +24,6 @@ class Obj(dict):
 
 def dict_2_obj(d: dict):
     return Obj(d)
-
-
-
-
-
-
-
 
 
 class Http(object):
@@ -107,7 +99,8 @@ def distribute(waybill_no):
     body = {"waybillNo": waybill_no}
     aes_cipher = AESCipher()
     encrypted_data = aes_cipher.encrypt(json.dumps(body), "YvIOPlG2lrJGJ5ar")
-    boy = {"logisticsInterface": encrypted_data, "partnerCode": "qihang"}
+    boy = {"logisticsInterface": encrypted_data,
+           "partnerCode": "qihang"}
 
     # 构造请求对象
     request: BaseRequest = BaseRequest.builder() \
@@ -118,22 +111,16 @@ def distribute(waybill_no):
         .build()
 
     # 发起请求
-    # resp: RawResponse = Http.execute(request)
-
-    # print(resp.content)
-    # 反序列化
-    # response: HttpResponse = HttpResponse(str(resp.content, UTF_8))
-
-    return Http.execute(request)
+    resp: RawResponse = Http.execute(request)
+    res: HttpResponse = JSON.unmarshal(str(resp.content, UTF_8), HttpResponse)
+    if res.success:
+        res.result = BarCodeMessage(res.result)
+    return res
 
 
 if __name__ == "__main__":
+    response: HttpResponse = distribute("433624511290817")
 
-    response: RawResponse = distribute("433624511290817")
+    print(response.to_dict())
 
-    print(str(response.content, UTF_8))
-
-    res: HttpResponse = JSON.unmarshal(str(response.content, UTF_8), HttpResponse)
-    # res: HttpResponse(d=barcode_message) = JSON.unmarshal(str(response.content, UTF_8), HttpResponse)
-    print(res.to_dict())
-    print(res.result.mailNo)
+    print(response.result.mailNo)

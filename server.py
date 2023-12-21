@@ -136,6 +136,7 @@ async def callback_event_handler(appid):
                         "timestamp": int(time.time() * 1000)})
     appCache = AppCache(appCacheJson)
     event_handler, event = event_manager.get_handler_with_event(appCache.verification_token, appCache.encrypt_key)
+    print(event.header.app_id)
     return event_handler(event)
 
 
@@ -180,4 +181,4 @@ if __name__ == "__main__":
     #     .build()
     # cache.set(":robot_app_key:" + key.appid, key.to_dict())
     # print(cache.get(":robot_app_key:" + key.appid))
-    app.run(host="0.0.0.0", port=80, debug=False)
+    app.run(host="0.0.0.0", port=8081, debug=False)

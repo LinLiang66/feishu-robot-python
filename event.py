@@ -7,7 +7,7 @@ import typing as t
 
 from lark_oapi import AESCipher
 
-from utils import dict_2_obj
+from util.utils import dict_2_obj
 from flask import request
 
 
