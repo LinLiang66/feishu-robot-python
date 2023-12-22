@@ -1,3 +1,5 @@
+import re
+
 import lark_oapi as lark
 
 from exts import cache
@@ -486,3 +488,228 @@ def get_robot_user_model(user_id: str) -> AppCache:
     else:
         robot_user_model = AppCache(robot_user_model_json)
     return robot_user_model
+
+
+# 构建卡片
+def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> str:
+    if content:
+        content = re.sub(r'(?m)^(.*)$', r'**\1**', content)
+    elif robot:
+        card = {
+            "elements": [
+                {
+                    "tag": "markdown",
+                    "content": content,
+                    "text_align": "left"
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "正在思考，请稍等..."
+
+                        }
+                    ]
+                }
+            ]
+        }
+
+        return lark.JSON.marshal(card)
+
+    if robot:
+        if end:
+            note = "🤖温馨提示✨✨：输入<帮助> 或 /help 即可获取帮助菜单"
+        else:
+            note = "正在处理中，请稍等..."
+
+        card = {
+            "elements": [
+                {
+                    "tag": "markdown",
+                    "content": content,
+                    "text_align": "left"
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "🤖能力来源:小肉"
+                        }
+                    ]
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": note
+
+                        }
+                    ]
+                }
+            ]
+        }
+
+        return lark.JSON.marshal(card)
+
+    if end:
+        card = {
+            "elements": [
+                {
+                    "tag": "column_set",
+                    "flex_mode": "none",
+                    "background_style": "default",
+                    "columns": [
+                        {
+                            "tag": "column",
+                            "width": "weighted",
+                            "weight": 1,
+                            "vertical_align": "top",
+                            "elements": [
+                                {
+                                    "tag": "div",
+                                    "text": {
+                                        "content": "**🕐 完成时间：**\n" + time,
+                                        "tag": "lark_md"
+                                    }
+                                },
+                                {
+                                    "tag": "markdown",
+                                    "content": content,
+                                    "text_align": "left"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "tag": "column_set",
+                    "flex_mode": "none",
+                    "background_style": "default",
+                    "columns": []
+                },
+                {
+                    "tag": "hr"
+                },
+                {
+                    "tag": "div",
+                    "fields": [
+                        {
+                            "is_short": True,
+                            "text": {
+                                "tag": "lark_md",
+                                "content": "**📝祝您生活愉快**"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "tag": "note",
+                    "elements": [
+                        {
+                            "tag": "plain_text",
+                            "content": "🤖温馨提示✨✨：输入<帮助> 或 /help 即可获取帮助菜单"
+                        }
+                    ]
+                }
+            ],
+            "header": {
+                "template": "violet",
+                "title": {
+                    "content": header,
+                    "tag": "plain_text"
+                }
+            }
+        }
+
+        return lark.JSON.marshal(card)
+
+    card = {
+        "elements": [
+            {
+                "tag": "column_set",
+                "flex_mode": "none",
+                "background_style": "default",
+                "columns": [
+                    {
+                        "tag": "column",
+                        "width": "weighted",
+                        "weight": 1,
+                        "vertical_align": "top",
+                        "elements": [
+                            {
+                                "tag": "div",
+                                "text": {
+                                    "content": "**🕐 响应时间：**\n" + time,
+                                    "tag": "lark_md"
+                                }
+                            },
+                            {
+                                "tag": "markdown",
+                                "content": content,
+                                "text_align": "left"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "tag": "column_set",
+                "flex_mode": "none",
+                "background_style": "default",
+                "columns": []
+            },
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": "赞一下"
+                        },
+                        "type": "primary",
+                        "value": {
+                            "success": True,
+                            "text": "praise"
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": "踩一下"
+                        },
+                        "type": "danger",
+                        "value": {
+                            "success": False,
+                            "text": "praise"
+                        }
+                    }
+                ]
+            },
+            {
+                "tag": "hr"
+            },
+            {
+                "tag": "note",
+                "elements": [
+                    {
+                        "tag": "plain_text",
+                        "content": "🤖温馨提示✨✨：输入<帮助> 或 /help 即可获取帮助菜单"
+                    }
+                ]
+            }
+        ],
+        "header": {
+            "template": "violet",
+            "title": {
+                "content": header,
+                "tag": "plain_text"
+            }
+        }
+    }
+
+    return lark.JSON.marshal(card)

@@ -1,7 +1,46 @@
-
 from typing import *
 
 from lark_oapi import init
+
+
+# 处理结果备注
+class RemarkBoy(object):
+    _types = {
+        "orderNo": str,
+        "remark": str,
+    }
+
+    def __init__(self, d=None):
+        self.orderNo: Optional[str] = None
+        self.remark: Optional[str] = None
+        init(self, d, self._types)
+
+    @staticmethod
+    def builder() -> "RemarkBoyBuilder":
+        return RemarkBoyBuilder()
+
+    def to_dict(self):
+        return {
+            'orderNo': self.orderNo,
+            'remark': self.remark,
+
+        }
+
+
+class RemarkBoyBuilder(object):
+    def __init__(self) -> None:
+        self._remark_boy = RemarkBoy()
+
+    def orderNo(self, orderNo: str) -> "RemarkBoyBuilder":
+        self._remark_boy.orderNo = orderNo
+        return self
+
+    def remark(self, remark: str) -> "RemarkBoyBuilder":
+        self._remark_boy.remark = remark
+        return self
+
+    def build(self) -> "RemarkBoy":
+        return self._remark_boy
 
 
 # Http请求回参
@@ -23,6 +62,56 @@ class HttpResponse(object):
             'code': self.code,
             'timestamp': self.timestamp,
             'result': self.result,
+        }
+
+
+# 内网物流轨迹
+class ExpressTrack(object):
+    _types = {}
+
+    def __init__(self, d=None) -> None:
+        self.devlEmp: Optional[str] = None
+        self.frgtVolWgt: Optional[float] = None
+        self.frgtWgt: Optional[float] = None
+        self.isGrpShip: Optional[bool] = False
+        self.nxtScanSite: Optional[str] = None
+        self.nxtScanSiteName: Optional[str] = None
+        self.nxtScanSiteTypeName: Optional[str] = None
+        self.preScanSite: Optional[str] = None
+        self.preScanSiteName: Optional[str] = None
+        self.preScanSiteTypeName: Optional[str] = None
+        self.scanSite: Optional[str] = None
+        self.scanSiteName: Optional[str] = None
+        self.scanSiteTypeName: Optional[str] = None
+        self.scanTm: Optional[str] = None
+        self.scanType: Optional[str] = None
+        self.scanTyp: Optional[int] = None
+        self.shipId: Optional[str] = None
+        self.trackRecord: Optional[str] = None
+        self.grpshipid: Optional[str] = None
+        init(self, d, self._types)
+
+    def to_dict(self):
+        return {
+            "devlEmp": self.devlEmp,
+            "frgtVolWgt": self.frgtVolWgt,
+            "frgtWgt": self.frgtWgt,
+            "isGrpShip": self.isGrpShip,
+            "nxtScanSite": self.nxtScanSite,
+            "nxtScanSiteName": self.nxtScanSiteName,
+            "nxtScanSiteTypeName": self.nxtScanSiteTypeName,
+            "preScanSite": self.preScanSite,
+            "preScanSiteName": self.preScanSiteName,
+            "preScanSiteTypeName": self.preScanSiteTypeName,
+            "scanSite": self.scanSite,
+            "scanSiteName": self.scanSiteName,
+            "scanSiteTypeName": self.scanSiteTypeName,
+            "scanTm": self.scanTm,
+            "scanType": self.scanType,
+            "scanTyp": self.scanTyp,
+            "shipId": self.shipId,
+            "trackRecord": self.trackRecord,
+            "grpshipid": self.grpshipid,
         }
 
 
@@ -190,6 +279,10 @@ class ServiceMessageBuilder(object):
 
     def visitPath(self, visitPath: str) -> "ServiceMessageBuilder":
         self._service_message.visitPath = visitPath
+        return self
+
+    def newFileName(self, newFileName: str) -> "ServiceMessageBuilder":
+        self._service_message.newFileName = newFileName
         return self
 
     def newReceiverName(self, newReceiverName: str) -> "ServiceMessageBuilder":

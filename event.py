@@ -1,14 +1,14 @@
 #!/usr/bin/env python3.8
 
-import json
 import abc
 import hashlib
+import json
 import typing as t
 
+from flask import request
 from lark_oapi import AESCipher
 
 from util.utils import dict_2_obj
-from flask import request
 
 
 class Event(object):

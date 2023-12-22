@@ -1,17 +1,15 @@
 import datetime
 import json
-import re
 import time
 import uuid
 
 import lark_oapi as lark
-
+from lark_oapi.api.contact.v3 import GetUserRequest, GetUserResponse
 from lark_oapi.api.im.v1 import *
 
 from exts import cache
-from model import Card, AppCache, PrivacyCardMessageRequest, PrivacyCardMessageRequestBody
+from model import AppCache, PrivacyCardMessageRequest, PrivacyCardMessageRequestBody
 from util.redisServer import redis
-from serverPiluin import card_handle_process
 
 
 # 获取现行时间 yyyy-MM-dd HH:mm:ss格式
@@ -33,6 +31,44 @@ def get_app_secret(appid):
     if appCacheJson:
         return AppCache(appCacheJson).app_secret
     return None
+
+
+# 获取消息中的资源文件
+def get_message_file(appid: str, message_id: str, file_key: str, file_type: str):
+    # 创建client
+    client = lark.Client.builder() \
+        .app_id(appid) \
+        .app_secret(get_app_secret(appid)) \
+        .log_level(lark.LogLevel.ERROR) \
+        .build()
+
+    # 构造请求对象
+    request: GetMessageResourceRequest = GetMessageResourceRequest.builder() \
+        .message_id(message_id) \
+        .file_key(file_key) \
+        .type(file_type) \
+        .build()
+
+    # 发起请求
+    response: GetMessageResourceResponse = client.im.v1.message_resource.get(request)
+
+    # 处理失败返回
+    if not response.success():
+        lark.logger.error(
+            f"client.im.v1.message_resource.get failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
+    # 处理业务结果
+
+    return response
+    # # 处理业务结果
+    # f = open(file_path + str(response.file_name), "wb")
+    # f.write(response.file.read())
+    # f.close()
+
+
+# if __name__ == "__main__":
+#     download_image("cli_a5acc5f93e79500c", "om_af13e1c1efea7603f9fa8b01e427b0a8",
+#                    "img_v3_026c_7f94f352-af20-410d-8b42-fac389cf82bg",
+#                    "image", "E:\\桌面\测试下载图片\\")
 
 
 # 上传图片
@@ -178,17 +214,6 @@ def get_text_from_json(json_str):
     return text
 
 
-# 处理卡片回调
-def do_interactive_card(data: Card) -> Any:
-    cache.set(":card_event:" + data.open_message_id, "Event has been handle", timeout=25200)
-    # 进入消息处理流程，并获取回复内容
-    handle_content = card_handle_process(data)
-    # 命中预设流程，进行回复
-    if handle_content.mate:
-        return handle_content.card
-    return lark.JSON.marshal({"success": False, "message": "本事件未被定义！", "code": 200})
-
-
 def updateTextCard(app_id, message_id, content) -> bool:
     # 创建client
     client = lark.Client.builder() \
@@ -315,238 +340,6 @@ def reply_message(app_id: str, message_id: str, content: str, msg_type: str) -> 
     return response
 
 
-# 构建卡片
-def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> str:
-    if content:
-        content = re.sub(r'(?m)^(.*)$', r'**\1**', content)
-    elif robot:
-        card = {
-            "elements": [
-                {
-                    "tag": "markdown",
-                    "content": content,
-                    "text_align": "left"
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": "🤖能力来源:小肉"
-                        }
-                    ]
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": "正在思考，请稍等..."
-
-                        }
-                    ]
-                }
-            ]
-        }
-
-        return lark.JSON.marshal(card)
-
-    if robot:
-        if end:
-            note = "🤖温馨提示✨✨：输入<帮助> 或 /help 即可获取帮助菜单"
-        else:
-            note = "正在处理中，请稍等..."
-
-        card = {
-            "elements": [
-                {
-                    "tag": "markdown",
-                    "content": content,
-                    "text_align": "left"
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": "🤖能力来源:小肉"
-                        }
-                    ]
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": note
-
-                        }
-                    ]
-                }
-            ]
-        }
-
-        return lark.JSON.marshal(card)
-
-    if end:
-        card = {
-            "elements": [
-                {
-                    "tag": "column_set",
-                    "flex_mode": "none",
-                    "background_style": "default",
-                    "columns": [
-                        {
-                            "tag": "column",
-                            "width": "weighted",
-                            "weight": 1,
-                            "vertical_align": "top",
-                            "elements": [
-                                {
-                                    "tag": "div",
-                                    "text": {
-                                        "content": "**🕐 完成时间：**\n" + time,
-                                        "tag": "lark_md"
-                                    }
-                                },
-                                {
-                                    "tag": "markdown",
-                                    "content": content,
-                                    "text_align": "left"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "tag": "column_set",
-                    "flex_mode": "none",
-                    "background_style": "default",
-                    "columns": []
-                },
-                {
-                    "tag": "hr"
-                },
-                {
-                    "tag": "div",
-                    "fields": [
-                        {
-                            "is_short": True,
-                            "text": {
-                                "tag": "lark_md",
-                                "content": "**📝已处理完成，祝您生活愉快**"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": "🤖能力来源:小肉"
-                        }
-                    ]
-                }
-            ],
-            "header": {
-                "template": "violet",
-                "title": {
-                    "content": header,
-                    "tag": "plain_text"
-                }
-            }
-        }
-
-        return lark.JSON.marshal(card)
-
-    card = {
-        "elements": [
-            {
-                "tag": "column_set",
-                "flex_mode": "none",
-                "background_style": "default",
-                "columns": [
-                    {
-                        "tag": "column",
-                        "width": "weighted",
-                        "weight": 1,
-                        "vertical_align": "top",
-                        "elements": [
-                            {
-                                "tag": "div",
-                                "text": {
-                                    "content": "**🕐 响应时间：**\n" + time,
-                                    "tag": "lark_md"
-                                }
-                            },
-                            {
-                                "tag": "markdown",
-                                "content": content,
-                                "text_align": "left"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "tag": "column_set",
-                "flex_mode": "none",
-                "background_style": "default",
-                "columns": []
-            },
-            {
-                "tag": "action",
-                "actions": [
-                    {
-                        "tag": "button",
-                        "text": {
-                            "tag": "plain_text",
-                            "content": "赞一下"
-                        },
-                        "type": "primary",
-                        "value": {
-                            "success": True
-                        }
-                    },
-                    {
-                        "tag": "button",
-                        "text": {
-                            "tag": "plain_text",
-                            "content": "踩一下"
-                        },
-                        "type": "danger",
-                        "value": {
-                            "success": False
-                        }
-                    }
-                ]
-            },
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "note",
-                "elements": [
-                    {
-                        "tag": "plain_text",
-                        "content": "🤖能力来源:小肉"
-                    }
-                ]
-            }
-        ],
-        "header": {
-            "template": "violet",
-            "title": {
-                "content": header,
-                "tag": "plain_text"
-            }
-        }
-    }
-
-    return lark.JSON.marshal(card)
-
-
 # length = 0
 
 def getText(user_id, role, content):
@@ -574,3 +367,26 @@ def checklen(user_id, text):
     return text
 
 
+def get_user(appid, user_id) -> GetUserResponse:
+    # 创建client
+    client = lark.Client.builder() \
+        .app_id(appid) \
+        .app_secret(get_app_secret(appid)) \
+        .log_level(lark.LogLevel.ERROR) \
+        .build()
+
+    # 构造请求对象
+    request: GetUserRequest = GetUserRequest.builder() \
+        .user_id(user_id) \
+        .user_id_type("user_id") \
+        .build()
+
+    # 发起请求
+    response: GetUserResponse = client.contact.v3.user.get(request)
+
+    # 处理失败返回
+    if not response.success():
+        lark.logger.error(
+            f"client.contact.v3.user.get failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
+
+    return response

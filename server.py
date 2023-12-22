@@ -5,25 +5,23 @@ import asyncio
 import importlib
 import json
 import logging
-
+import os
 import time
 
 import requests
 from asgiref.wsgi import WsgiToAsgi
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, jsonify
-
 from lark_oapi.adapter.flask import *
 
 import SparkApi
-from api import reply_message, build_card, get_current_time, do_interactive_card, send_privacy_card_message
-from cardBuild import help_card_build
-
+from api import reply_message, get_current_time, send_privacy_card_message
+from cardBuild import help_card_build, build_card
 from event import MessageReceiveEvent, UrlVerificationEvent, EventManager, MemberDeletedReceiveEvent, \
     MemberAddedReceiveEvent
 from exts import cache
 from model import Card, AppCache
-from serverPiluin import message_handle_process
+from serverPiluin import message_handle_process, do_interactive_card
 
 # load env parameters form file named .env
 load_dotenv(find_dotenv())
@@ -77,27 +75,27 @@ def member_deleted_receive_event_handler(req_data: MemberDeletedReceiveEvent):
 @event_manager.register("im.message.receive_v1")
 def message_receive_event_handler(req_data: MessageReceiveEvent):
     message_id = req_data.event.message.message_id
+    user_id = req_data.event.sender.sender_id.user_id
     if cache.get(":message_event:" + message_id):
         return jsonify({"success": False, "message": "Message has been handle", "code": 200,
                         "timestamp": int(time.time() * 1000)})
     cache.set(":message_event:" + message_id, "Message has been handle", timeout=25200)
     app_id = req_data.header.app_id
     message = req_data.event.message
-    data = json.loads(message.content)
-    print("我是消息类型=======================" + message.message_type)
-    if message.message_type == "text":
-        # echo text message
-        text_content = data["text"]
+    if message.message_type == "text" or message.message_type == "post":
         # 进入消息处理流程，并获取回复内容
         handle_content = message_handle_process(req_data)
         # 命中预设场景流程，进行回复，分单聊、群聊
         if handle_content.mate:
             card_content = handle_content.card
             if req_data.event.message.chat_type == "group":
-                send_privacy_card_message(app_id, req_data.event.message.chat_id,
-                                          req_data.event.sender.sender_id.user_id,
-                                          req_data.event.sender.sender_id.open_id, "interactive",
-                                          card_content)
+                if handle_content.privacy:
+                    send_privacy_card_message(app_id, req_data.event.message.chat_id,
+                                              req_data.event.sender.sender_id.user_id,
+                                              req_data.event.sender.sender_id.open_id, "interactive",
+                                              card_content)
+                else:
+                    reply_message(app_id, message_id, card_content, "interactive")
             elif req_data.event.message.chat_type == "p2p":
                 reply_message(app_id, message_id, card_content, "interactive")
 
@@ -109,23 +107,24 @@ def message_receive_event_handler(req_data: MessageReceiveEvent):
         # 回复空卡片消息，并拿到新的message_id
         message_boy = reply_message(app_id, message_id, card_content, "interactive")
         if message_boy.success():
+            text_content = handle_content.text_content
+            if text_content is None:
+                data = json.loads(req_data.event.message.content)
+                if req_data.event.message.message_type == "post":
+                    image_key = []
+                    for datacontent in data["content"]:
+                        for content in datacontent:
+                            if content["tag"] == "text":
+                                text_content += content["text"]
+                            elif content["tag"] == "img":
+                                image_key.append(content["image_key"])
+                elif req_data.event.message.message_type == "text":
+                    text_content = data["text"]
+
             # 异步调用大模型实现打字机问答功能
             asyncio.create_task(
-                async_iFlytek_sendMessage(app_id, message_boy.data.message_id, req_data.event.sender.sender_id.user_id,
+                async_iFlytek_sendMessage(app_id, message_boy.data.message_id, user_id,
                                           text_content))
-        return jsonify()
-    elif message.message_type == "post":
-        text_content = ""
-        image_key = []
-        for datacontent in data["content"]:
-            for content in datacontent:
-                if content["tag"] == "text":
-                    text_content += content["text"]
-                elif content["tag"] == "img":
-                    image_key.append(content["image_key"])
-        print("我是消息原文================" + text_content)
-        print("我是图片key================")
-        print(image_key)
         return jsonify()
     else:
         logging.error("Other types of messages have not been processed yet")
@@ -194,4 +193,8 @@ if __name__ == "__main__":
     #     .build()
     # cache.set(":robot_app_key:" + key.appid, key.to_dict())
     # print(cache.get(":robot_app_key:" + key.appid))
+    # 获取当前脚本所在目录
+    directory = os.getcwd() + "\\tempfile"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     app.run(host="0.0.0.0", port=8081, debug=False)

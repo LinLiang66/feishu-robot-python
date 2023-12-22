@@ -1,7 +1,7 @@
 from lark_oapi import logger
 
-from util.yundaModel import HttpResponse
 from util.yundaApi import query_bar_code_record
+from util.yundaModel import HttpResponse
 
 
 class Obj(dict):

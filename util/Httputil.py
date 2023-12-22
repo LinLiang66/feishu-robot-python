@@ -1,7 +1,8 @@
+from typing import *
+
 import requests
 from lark_oapi import RawResponse, UTF_8, JSON, Files, CONTENT_TYPE, HttpMethod, AccessTokenType
 from requests_toolbelt import MultipartEncoder
-from typing import *
 
 
 class BaseRequest(object):

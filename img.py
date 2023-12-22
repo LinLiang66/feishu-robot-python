@@ -1,8 +1,8 @@
 import json
+
+import matplotlib.pyplot as plt
 import pandas as pd
 from jinja2 import Template
-import matplotlib.pyplot as plt
-
 
 # JSON数据
 json_data = '''

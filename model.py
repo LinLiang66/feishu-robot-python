@@ -1,12 +1,10 @@
 import json
-
-from lark_oapi.core.construct import init
-from lark_oapi.core.model import RawRequest
-
 from typing import *
 
+from lark_oapi.core.construct import init
 from lark_oapi.core.enum import HttpMethod, AccessTokenType
 from lark_oapi.core.model import BaseRequest
+from lark_oapi.core.model import RawRequest
 
 
 class PrivacyCardMessageRequestBody(object):
@@ -219,13 +217,19 @@ class AppCacheBuilder(object):
 class WinCard(object):
     _types = {
         "card": str,
+        "text_content": str,
+        "image_key": list,
         "mate": bool,
+        "privacy": bool,
         "continue_processing": bool,
     }
 
     def __init__(self, d=None):
         self.card: Optional[str] = None
+        self.text_content: Optional[str] = None
+        self.image_key: Optional[list] = None
         self.mate: Optional[bool] = False
+        self.privacy: Optional[bool] = True
         self.continue_processing: Optional[bool] = True
         init(self, d, self._types)
 
@@ -245,8 +249,20 @@ class WinCardBuilder(object):
         self._win_card.card = card
         return self
 
+    def text_content(self, text_content: str) -> "WinCardBuilder":
+        self._win_card.text_content = text_content
+        return self
+
+    def image_key(self, image_key: list) -> "WinCardBuilder":
+        self._win_card.image_key = image_key
+        return self
+
     def mate(self, mate: bool) -> "WinCardBuilder":
         self._win_card.mate = mate
+        return self
+
+    def privacy(self, privacy: bool) -> "WinCardBuilder":
+        self._win_card.privacy = privacy
         return self
 
     def continue_processing(self, continue_processing: bool) -> "WinCardBuilder":
@@ -255,6 +271,3 @@ class WinCardBuilder(object):
 
     def build(self) -> "WinCard":
         return self._win_card
-
-
-

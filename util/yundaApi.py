@@ -1,5 +1,4 @@
 import json
-import os
 from typing import *
 
 import requests
@@ -7,7 +6,7 @@ from lark_oapi import BaseRequest, HttpMethod, RawResponse, JSON, UTF_8, logger
 
 from util.AES import AESCipher
 from util.Httputil import Http
-from util.yundaModel import HttpResponse, BarCodeMessage, EncryptedRequestBoy, ImageMessage
+from util.yundaModel import HttpResponse, BarCodeMessage, EncryptedRequestBoy, ImageMessage, ExpressTrack
 
 url = "https://qihang.yundasys.com/"  # 启航生产环境
 partnerCode = "qihang"  # 启航生产环境
@@ -49,6 +48,38 @@ def query_bar_code_record(waybill_no):
     return res
 
 
+# 内网物流轨迹查询
+def query_expressTrack(waybill_no):
+    # 构造加密数据
+    encrypted_data = AESCipher().encrypt(json.dumps({"waybillNo": waybill_no}), key)
+    # 构造请求内容
+    RequestBoy: EncryptedRequestBoy = EncryptedRequestBoy.builder() \
+        .partnerCode(partnerCode) \
+        .logisticsInterface(encrypted_data) \
+        .build()
+    # 构造请求对象
+    request: BaseRequest = BaseRequest.builder() \
+        .uri(url + "manager/out/getExpressTrackV2") \
+        .http_method(HttpMethod.POST) \
+        .body(RequestBoy.to_dict()) \
+        .headers({"Content-Type": "application/json"}) \
+        .build()
+    # 发起请求
+    resp: RawResponse = Http.execute(request)
+    res: HttpResponse = JSON.unmarshal(str(resp.content, UTF_8), HttpResponse)
+    if res.success:
+        res.result = [ExpressTrack(item) for item in res.result]
+    else:
+        logger.error(f"{str(request.http_method.name)} {request.uri} , "
+                     f"headers: {JSON.marshal(request.headers)}, "
+                     f"params: {JSON.marshal(request.queries)}, "
+                     f"body: {str(request.body, UTF_8) if isinstance(request.body, bytes) else request.body},"
+                     f"code: {res.code}, "
+                     f"success: {res.success}, "
+                     f"message: {res.message}")
+    return res, len(res.result)
+
+
 # 发送进港留言
 def send_incoming_message(content):
     # 构造加密数据
@@ -61,7 +92,7 @@ def send_incoming_message(content):
 
     # 构造请求对象
     request: BaseRequest = BaseRequest.builder() \
-        .uri(url + "manager/out/send/ServiceMessage") \
+        .uri(url + "manager/out/send/incomingMsg") \
         .http_method(HttpMethod.POST) \
         .body(RequestBoy.to_dict()) \
         .headers({"Content-Type": "application/json"}) \
@@ -103,10 +134,10 @@ def upload_image(content, file: IO[Any]):
 
 
 if __name__ == "__main__":
-    if os.path.exists("E:\\桌面\\推广.jpg"):
-        file = open("E:\\桌面\\推广.jpg", "rb")
 
-        response: HttpResponse = upload_image({"uploadType": 1, "orderNo": "318793069369832", "outNo": "qihang"},
-                                                file)
-
-        print(response.result.fileName)
+    response, res = query_expressTrack("463292204930709")
+    print(response.to_dict())
+    print(res)
+    if response.success:
+        for datacontent in response.result:
+            print(datacontent.to_dict())

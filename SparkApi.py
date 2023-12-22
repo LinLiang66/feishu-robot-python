@@ -4,18 +4,17 @@ import datetime
 import hashlib
 import hmac
 import json
-
-from urllib.parse import urlparse
 import ssl
 from datetime import datetime
 from time import mktime
 from urllib.parse import urlencode
+from urllib.parse import urlparse
 from wsgiref.handlers import format_date_time
 
 import websocket  # 使用websocket_client
 
-from api import build_card, get_current_time, updateTextCard, getText, checklen
-from cardBuild import get_robot_user_model
+from api import get_current_time, updateTextCard, getText, checklen
+from cardBuild import get_robot_user_model, build_card
 from exts import cache
 from model import AppCache
 
