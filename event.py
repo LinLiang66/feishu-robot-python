@@ -99,6 +99,7 @@ class EventManager(object):
     def get_handler_with_event(token, encrypt_key):
         dict_data = json.loads(request.data)
         dict_data = EventManager._decrypt_data(encrypt_key, dict_data)
+
         callback_type = dict_data.get("type")
         # only verification data has callback_type, else is event
         if callback_type == "url_verification":

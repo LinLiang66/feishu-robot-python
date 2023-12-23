@@ -16,6 +16,7 @@
         <list>
           <option value="str.*" />
           <option value="model.HttpResponse.*" />
+          <option value="express_number" />
         </list>
       </option>
     </inspection_tool>

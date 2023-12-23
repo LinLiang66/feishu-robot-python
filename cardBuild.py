@@ -246,7 +246,7 @@ def help_card_build(user_id: str) -> str:
                 "tag": "div",
                 "text": {
                     "tag": "lark_md",
-                    "content": "👋 **你好呀，我是一款基于星火认知大模型技术的智能聊天机器人！**\n了解更多玩法技巧，请点击右侧「使用说明」查看👉"
+                    "content": "👋 **你好呀，我是一款基于认知大模型技术的智能聊天机器人！**\n了解更多玩法技巧，请点击右侧「使用说明」👀👀👉"
                 },
                 "extra": {
                     "tag": "button",
@@ -529,15 +529,6 @@ def build_card(header: str, time: str, content: str, end: bool, robot: bool) -> 
                     "tag": "markdown",
                     "content": content,
                     "text_align": "left"
-                },
-                {
-                    "tag": "note",
-                    "elements": [
-                        {
-                            "tag": "plain_text",
-                            "content": "🤖能力来源:小肉"
-                        }
-                    ]
                 },
                 {
                     "tag": "note",

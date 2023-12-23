@@ -22,6 +22,7 @@ from event import MessageReceiveEvent, UrlVerificationEvent, EventManager, Membe
 from exts import cache
 from model import Card, AppCache
 from serverPiluin import message_handle_process, do_interactive_card
+from util.yundaApi import query_expressTrack, query_expressTrackV2
 
 # load env parameters form file named .env
 load_dotenv(find_dotenv())
@@ -74,6 +75,7 @@ def member_deleted_receive_event_handler(req_data: MemberDeletedReceiveEvent):
 
 @event_manager.register("im.message.receive_v1")
 def message_receive_event_handler(req_data: MessageReceiveEvent):
+
     message_id = req_data.event.message.message_id
     user_id = req_data.event.sender.sender_id.user_id
     if cache.get(":message_event:" + message_id):
@@ -143,6 +145,9 @@ def msg_error_handler(ex):
 
 @app.route("/<appid>", methods=["POST"])
 async def callback_event_handler(appid):
+    if appid is None:
+        return jsonify({"success": False, "message": "APPID Cannot be empty", "code": 200,
+                        "timestamp": int(time.time() * 1000)})
     appCacheJson = cache.get(":robot_app_key:" + appid)
     if appCacheJson is None:
         return jsonify({"success": False, "message": "APPID is invalid", "code": 200,
@@ -152,8 +157,17 @@ async def callback_event_handler(appid):
     return event_handler(event)
 
 
+# @app.route("/out/getExpressTrackV2/<waybillNo>", methods=["GET"])
+# async def get_expressTrackV2(waybillNo):
+#     res = query_expressTrackV2(waybillNo)
+#     return jsonify(res.to_dict())
+
+
 @app.route("/card/<appid>", methods=["POST"])
 async def card(appid):
+    if appid is None:
+        return jsonify({"success": False, "message": "APPID Cannot be empty", "code": 200,
+                        "timestamp": int(time.time() * 1000)})
     appCacheJson = cache.get(":robot_app_key:" + appid)
     if appCacheJson is None:
         return jsonify({"success": False, "message": "APPID is invalid", "code": 200,

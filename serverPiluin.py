@@ -20,6 +20,16 @@ from util.yundaModel import ServiceMessage, RemarkBoy, HttpResponse
 
 # 理赔专用
 def handle_process_claim(req_data: MessageReceiveEvent, text_content, image_key):
+    if req_data.event.message.chat_id != "oc_007e96b83d71e19ebeea04af92e15bd4":
+        return WinCard.builder() \
+            .card(build_card("处理结果", get_current_time(), "未授权", False, False)) \
+            .mate(False) \
+            .privacy(False) \
+            .continue_processing(False) \
+            .text_content(text_content) \
+            .image_key(image_key) \
+            .build()
+
     reply_content = "运单号不能为空"
     message_id = req_data.event.message.message_id
     user_id = req_data.event.sender.sender_id.user_id

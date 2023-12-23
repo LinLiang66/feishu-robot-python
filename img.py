@@ -1,55 +1,43 @@
-import json
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFont
+from jinja2 import Environment, FileSystemLoader
 
-import matplotlib.pyplot as plt
-import pandas as pd
-from jinja2 import Template
+if __name__ == "__main__":
+    # 加载 FTL 模板
+    env = Environment(loader=FileSystemLoader('.'))
+    template = env.get_template('templates/tmp.ftl')
 
-# JSON数据
-json_data = '''
-[
-    {"name": "蔺亮", "age": 20, "score": 90},
-    {"name": "李四", "age": 22, "score": 85},
-    {"name": "王五", "age": 24, "score": 88}
-]
-'''
+    # 渲染模板
+    rendered_template = template.render(no="12345", list=[
+        {
+            "scanTm": "2022-01-01 10:00:00",
+            "scanType": "类型A",
+            "trackRecord": "这是一条跟踪记录",
+            "grpshipid": "大包号1",
+            "frgtWgt": "10",
+            "frgtVolWgt": "20"
+        },
+        {
+            "scanTm": "2022-01-01 11:00:00",
+            "scanType": "类型B",
+            "trackRecord": "这是另一条跟踪记录",
+            "grpshipid": "大包号2",
+            "frgtWgt": "15",
+            "frgtVolWgt": "25"
+        }
+    ])
 
-# FTL模板
-ftl_template = '''
-<table>
-    <thead>
-        <tr>
-            <th style="background-color: {{ header_color }};">姓名</th>
-            <th style="background-color: {{ header_color }};">年龄</th>
-            <th style="background-color: {{ header_color }};">分数</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in data %}
-        <tr>
-            <td>{{ row.name }}</td>
-            <td>{{ row.age }}</td>
-            <td>{{ row.score }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-'''
+    # 创建一个新的图片对象
+    image = Image.new('RGB', (900, 600), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
 
-# 使用pandas读取JSON数据
-data = json.loads(json_data)
-df = pd.DataFrame(data)
+    # 设置字体和大小
+    font = ImageFont.truetype('arial.ttf', size=20)
 
-# 使用jinja2渲染FTL模板
-template = Template(ftl_template)
-rendered_html = template.render(data=df.to_dict(orient='records'), header_color='yellow')
-
-# 使用matplotlib绘制表格并保存为图片
-fig, ax = plt.subplots()
-ax.axis('off')
-ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-plt.savefig('table.png')
-
-# 显示图片（可选）
-img = plt.imread('table.png')
-plt.imshow(img)
-plt.show()
+    # 在图片上绘制文本
+    x, y = 10, 10
+    for line in rendered_template.split('\n'):
+        draw.text((x, y), line, font=font, fill=(0, 0, 0))
+        y += 20
+    # 保存图片
+    image.save("E:\\桌面\\66777.jpg")
