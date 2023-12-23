@@ -157,10 +157,10 @@ async def callback_event_handler(appid):
     return event_handler(event)
 
 
-# @app.route("/out/getExpressTrackV2/<waybillNo>", methods=["GET"])
-# async def get_expressTrackV2(waybillNo):
-#     res = query_expressTrackV2(waybillNo)
-#     return jsonify(res.to_dict())
+@app.route("/out/getExpressTrackV2/<waybillNo>", methods=["GET"])
+async def get_expressTrackV2(waybillNo):
+    res = query_expressTrackV2(waybillNo)
+    return jsonify(res.to_dict())
 
 
 @app.route("/card/<appid>", methods=["POST"])
