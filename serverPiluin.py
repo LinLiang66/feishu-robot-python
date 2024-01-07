@@ -18,126 +18,6 @@ from util.yundaModel import ServiceMessage, RemarkBoy, HttpResponse
 
 # 消息意图处理程序
 
-# 理赔专用
-def handle_process_claim(req_data: MessageReceiveEvent, text_content, image_key):
-    if req_data.event.message.chat_id != "oc_007e96b83d71e19ebeea04af92e15bd4":
-        return WinCard.builder() \
-            .card(build_card("处理结果", get_current_time(), "未授权", False, False)) \
-            .mate(False) \
-            .privacy(False) \
-            .continue_processing(False) \
-            .text_content(text_content) \
-            .image_key(image_key) \
-            .build()
-
-    reply_content = "运单号不能为空"
-    message_id = req_data.event.message.message_id
-    user_id = req_data.event.sender.sender_id.user_id
-    app_id = req_data.header.app_id
-    has_matches, matchesNo, matches = matches_orderNo(text_content)
-    if has_matches:
-        fileNames = []
-        filePaths = []
-        newFileNames = []
-        visitPaths = []
-        xieTongFilePaths = []
-        fileName = None
-        filePath = None
-        newFileName = None
-        visitPath = None
-        xieTongFilePath = None
-        remark_boy_list = []
-        for image in image_key:
-            # start_time = time.time()  # 记录开始时间
-            response: GetMessageResourceResponse = get_message_file(app_id, message_id, image, "image")
-            if response.success():
-
-                file_path = os.getcwd() + "\\tempfile\\" + str(uuid.uuid4()).replace("-", "") + ".png"
-                with open(file_path, "wb") as file:
-                    file.write(response.file.read())
-                res: HttpResponse = upload_image(
-                    {"uploadType": 2, "orderNo": matches[0], "outNo": "qihang"},
-                    open(file_path, 'rb'))
-                if res.success:
-                    fileNames.append(res.result.fileName)
-                    filePaths.append(res.result.filePath)
-                    newFileNames.append(res.result.newFileName)
-                    visitPaths.append(res.result.visitPath)
-                    xieTongFilePaths.append(res.result.xieTongFilePath)
-                os.remove(file_path)
-            # end_time = time.time()  # 记录结束时间
-            # elapsed_time = end_time - start_time  # 计算耗时
-            # print("上传图片子程序执行耗时：", elapsed_time, "秒")
-        if len(fileNames) > 0:
-            fileName = ','.join(fileNames)
-            filePath = ','.join(filePaths)
-            newFileName = ','.join(newFileNames)
-            visitPath = ','.join(visitPaths)
-            xieTongFilePath = ','.join(xieTongFilePaths)
-        user = get_user(app_id, user_id)
-        userName = "蔺亮"
-        if user.success:
-            userName = user.data.user.name
-        for match in matches:
-            expressTrack, expressTrackNo = query_expressTrack(match)
-            if expressTrack.success and expressTrackNo > 0:
-                if len(expressTrack.result[expressTrackNo - 1].nxtScanSite) > 5:
-                    jgReceiveSite = expressTrack.result[expressTrackNo - 1].nxtScanSite
-                else:
-                    jgReceiveSite = expressTrack.result[expressTrackNo - 1].scanSite
-
-                if match[:2] == "46":
-                    problemContent = "贵公司您好：您有一票网络平台B投诉单已经超时溢出，单号为：【 " + match + (
-                        "】，客户至今未收到快递，为了避免客户在拼多多平台产生二次申诉（100元"
-                        "/票），对贵司造成更大的经济损失，此件总部已按遗失件面向收件人进行理赔。如有疑问可钉钉联系：刘新育")
-                else:
-                    problemContent = "贵公司您好：您有一票网络平台B投诉单已经超时溢出，单号为：【 " + match + (
-                        "】客户至今未收到快递，为了避免客户在平台产生二次申诉（100"
-                        "元/票），对贵司造成更大的经济损失，此件总部已按遗失件面向收件人进行理赔。如有疑问可钉钉联系：刘新育")
-                Message = ServiceMessage.builder() \
-                    .orderNo(match) \
-                    .fileName(fileName) \
-                    .xieTongFilePath(xieTongFilePath) \
-                    .filePath(filePath) \
-                    .visitPath(visitPath) \
-                    .createBy(userName) \
-                    .newFileName(newFileName) \
-                    .createId("1651555067645681666") \
-                    .createMobile("13158626321") \
-                    .workExpressType("222") \
-                    .outNo("qihangjingang") \
-                    .problemContent(problemContent) \
-                    .jgPublishSite("999111") \
-                    .jgReceiveSite(jgReceiveSite) \
-                    .build()
-                res = send_incoming_message(Message.to_dict())
-                if res.success:
-                    remark_boy_list.append(RemarkBoy.builder() \
-                                           .orderNo(match) \
-                                           .remark("以上单号的理赔信息已同步网点") \
-                                           .build()
-                                           )
-                else:
-                    remark_boy_list.append(RemarkBoy.builder() \
-                                           .orderNo(match) \
-                                           .remark("以上单号的理赔信息同步网点失败：" + res.message) \
-                                           .build())
-            else:
-                remark_boy_list.append(RemarkBoy.builder() \
-                                       .orderNo(match) \
-                                       .remark("以上单号的理赔信息同步网点失败：物流轨迹不能为空") \
-                                       .build())
-        reply_content = group_by_remark(remark_boy_list)
-
-    return WinCard.builder() \
-        .card(build_card("处理结果", get_current_time(), reply_content, False, False)) \
-        .mate(True) \
-        .privacy(False) \
-        .continue_processing(False) \
-        .text_content(text_content) \
-        .image_key(image_key) \
-        .build()
-
 
 # 帮助|help
 def handle_help(req_data: MessageReceiveEvent, text_content, image_key) -> WinCard:
@@ -266,7 +146,6 @@ def card_diverge(data: Card) -> WinCard:
 
 
 message_intents = [
-    (r'理赔专用', handle_process_claim),
     (r'帮助|help', handle_help),
     (r'清除|clear', handle_clear),
     (r'模型|model', handle_model),

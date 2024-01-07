@@ -18,13 +18,6 @@ def get_current_time():
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
 
-# 判断指定时间与现行时间是否超过五秒
-def is_within_five_seconds(timestamp) -> bool:
-    current_time = int(time.time() * 1000)
-    time_difference = current_time - int(timestamp)
-    return time_difference <= 5000
-
-
 # 根据APP_ID获取APP_SECRET
 def get_app_secret(appid):
     appCacheJson = cache.get(":robot_app_key:" + appid)
@@ -59,16 +52,6 @@ def get_message_file(appid: str, message_id: str, file_key: str, file_type: str)
     # 处理业务结果
 
     return response
-    # # 处理业务结果
-    # f = open(file_path + str(response.file_name), "wb")
-    # f.write(response.file.read())
-    # f.close()
-
-
-# if __name__ == "__main__":
-#     download_image("cli_a5acc5f93e79500c", "om_af13e1c1efea7603f9fa8b01e427b0a8",
-#                    "img_v3_026c_7f94f352-af20-410d-8b42-fac389cf82bg",
-#                    "image", "E:\\桌面\测试下载图片\\")
 
 
 # 上传图片
@@ -116,68 +99,6 @@ def get_chat_info(chat_id: str, app_id: str) -> GetChatResponseBody:
             f"client.im.v1.chat.get failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
 
     return response.data
-
-
-# 更新会话名称
-def update_chat_name(chat_id: str, chat_name: str, app_id: str):
-    # 创建client
-    client = lark.Client.builder() \
-        .app_id(app_id) \
-        .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.ERROR) \
-        .build()
-
-    request: UpdateChatRequest = UpdateChatRequest.builder() \
-        .chat_id(chat_id) \
-        .request_body(UpdateChatRequestBody.builder()
-                      .name(chat_name)
-                      .build()) \
-        .build()
-
-    response: UpdateChatResponse = client.im.v1.chat.update(request)
-
-    if not response.success():
-        raise Exception(
-            f"client.im.v1.chat.update failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-
-
-# 处理消息回调
-def do_p2_im_message_receive_v1(data: P2ImMessageReceiveV1, ) -> None:
-    app_id = data.header.app_id
-    # 创建client
-    client = lark.Client.builder() \
-        .app_id(app_id) \
-        .app_secret(get_app_secret(app_id)) \
-        .log_level(lark.LogLevel.ERROR) \
-        .build()
-
-    msg = data.event.message
-    if "/solve" in msg.content:
-        request = CreateMessageRequest.builder() \
-            .receive_id_type("chat_id") \
-            .request_body(CreateMessageRequestBody.builder()
-                          .receive_id(msg.chat_id)
-                          .msg_type("text")
-                          .content("{\"text\":\"问题已解决，辛苦了!\"}")
-                          .build()) \
-            .build()
-
-        response = client.im.v1.chat.create(request)
-
-        if not response.success():
-            raise Exception(
-                f"client.im.v1.chat.create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-
-        # 获取会话信息
-        chat_info = get_chat_info(msg.chat_id, app_id)
-        name = chat_info.name
-        if name.startswith("[跟进中]"):
-            name = "[已解决]" + name[5:]
-        elif not name.startswith("[已解决]"):
-            name = "[已解决]" + name
-
-        # 更新会话名称
-        update_chat_name(msg.chat_id, name, app_id)
 
 
 def get_message(app_id: str, message_id: str) -> GetMessageResponse:

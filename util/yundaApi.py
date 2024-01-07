@@ -53,6 +53,7 @@ def query_bar_code_record(waybill_no):
 def query_expressTrackV2(waybill_no):
     # 构造加密数据
     encrypted_data = aes.encrypt(json.dumps({"waybillNo": waybill_no}), key)
+    # print(encrypted_data)
     # 构造请求内容
     RequestBoy: EncryptedRequestBoy = EncryptedRequestBoy.builder() \
         .partnerCode(partnerCode) \

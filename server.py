@@ -32,12 +32,6 @@ asgi_app = WsgiToAsgi(app)
 
 cache.init_app(app)
 
-config_module = importlib.import_module("config")
-config_instance = config_module.Config()
-
-print(config_instance.setting1)  # 输出 "value1"
-print(config_instance.setting2)  # 输出 "value2"
-
 event_manager = EventManager()
 
 
@@ -75,7 +69,6 @@ def member_deleted_receive_event_handler(req_data: MemberDeletedReceiveEvent):
 
 @event_manager.register("im.message.receive_v1")
 def message_receive_event_handler(req_data: MessageReceiveEvent):
-
     message_id = req_data.event.message.message_id
     user_id = req_data.event.sender.sender_id.user_id
     if cache.get(":message_event:" + message_id):
@@ -143,8 +136,8 @@ def msg_error_handler(ex):
     return response
 
 
-@app.route("/<appid>", methods=["POST"])
-async def callback_event_handler(appid):
+@app.route("/webhook/event/<appid>", methods=["POST"])
+async def callback_event_handlerv2(appid):
     if appid is None:
         return jsonify({"success": False, "message": "APPID Cannot be empty", "code": 200,
                         "timestamp": int(time.time() * 1000)})
@@ -157,14 +150,8 @@ async def callback_event_handler(appid):
     return event_handler(event)
 
 
-@app.route("/out/getExpressTrackV2/<waybillNo>", methods=["GET"])
-async def get_expressTrackV2(waybillNo):
-    res = query_expressTrackV2(waybillNo)
-    return jsonify(res.to_dict())
-
-
-@app.route("/card/<appid>", methods=["POST"])
-async def card(appid):
+@app.route("/webhook/card/<appid>", methods=["POST"])
+async def cardv2(appid):
     if appid is None:
         return jsonify({"success": False, "message": "APPID Cannot be empty", "code": 200,
                         "timestamp": int(time.time() * 1000)})
@@ -193,22 +180,18 @@ async def card(appid):
 
 if __name__ == "__main__":
     # key = AppCache.builder() \
-    #     .appid("cli_a5acc5f93e79500c") \
-    #     .app_secret("kCI4rVklhpKMRbzHzdoWveauRQUSmom2") \
+    #     .appid("cli_a50d7635f8bb900b77") \
+    #     .app_secret("HUZ7Ea0eVDrUAfwW2Kgi2fttmwl4U7z577") \
     #     .app_role_type(1) \
-    #     .verification_token("gez70dUsVLgkR8saxWlPldRGfnS0I87p") \
-    #     .encrypt_key("u4sUMaG3uWxZIaeNPccQmgCFBuepXLop") \
+    #     .encrypt_key("gez70dUsVLgkR8saxWlPldRGfnS0I87p77") \
+    #     .verification_token("u4sUMaG3uWxZIaeNPccQmgCFBuepXLop77") \
     #     .robot_appid("f4317c24") \
-    #     .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx") \
-    #     .robot_api_key("750605805c6e5191737087ec504f600d") \
+    #     .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx77") \
+    #     .robot_api_key("750605805c6e5191737087ec504f600d77") \
     #     .robot_domain("generalv3") \
     #     .robot_spark_url("ws://spark-api.xf-yun.com/v3.1/chat") \
     #     .robot_temperature(1) \
     #     .build()
     # cache.set(":robot_app_key:" + key.appid, key.to_dict())
     # print(cache.get(":robot_app_key:" + key.appid))
-    # 获取当前脚本所在目录
-    directory = os.getcwd() + "\\tempfile"
-    if not os.path.exists(directory):
-        os.makedirs(directory)
     app.run(host="0.0.0.0", port=8081, debug=False)
