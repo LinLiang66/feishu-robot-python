@@ -2,10 +2,8 @@
 
 
 import asyncio
-import importlib
 import json
 import logging
-import os
 import time
 
 import requests
@@ -22,7 +20,6 @@ from event import MessageReceiveEvent, UrlVerificationEvent, EventManager, Membe
 from exts import cache
 from model import Card, AppCache
 from serverPiluin import message_handle_process, do_interactive_card
-
 
 # load env parameters form file named .env
 load_dotenv(find_dotenv())
