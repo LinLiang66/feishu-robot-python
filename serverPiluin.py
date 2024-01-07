@@ -1,19 +1,12 @@
 import json
-import os
-import uuid
 from typing import Any
 
-from lark_oapi.api.im.v1 import GetMessageResourceResponse
-
-from api import get_message, get_text_from_json, get_current_time, get_message_file, get_user
+from api import get_message, get_text_from_json, get_current_time
 from cardBuild import *
 from event import MessageReceiveEvent
 from exts import cache
 from model import Card, WinCard
 from util.redisServer import redis
-from util.regularApi import matches_orderNo, group_by_remark
-from util.yundaApi import upload_image, query_expressTrack, send_incoming_message
-from util.yundaModel import ServiceMessage, RemarkBoy, HttpResponse
 
 
 # 消息意图处理程序

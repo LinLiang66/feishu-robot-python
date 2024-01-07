@@ -1,9 +1,3 @@
-from lark_oapi import logger
-
-from util.yundaApi import query_bar_code_record
-from util.yundaModel import HttpResponse
-
-
 class Obj(dict):
     def __init__(self, d):
         super().__init__()
@@ -16,17 +10,3 @@ class Obj(dict):
 
 def dict_2_obj(d: dict):
     return Obj(d)
-
-
-if __name__ == "__main__":
-    response: HttpResponse = query_bar_code_record("433624511290817")
-
-    print(response.to_dict())
-    if response.success:
-        print(response.result.mailNo)
-
-    else:
-        logger.error(f"method:query_bar_code_record , "
-                     f"code: {response.code}, "
-                     f"success: {response.success}, "
-                     f"message: {response.message}")
