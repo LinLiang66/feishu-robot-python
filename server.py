@@ -177,14 +177,14 @@ async def cardv2(appid):
 
 if __name__ == "__main__":
     # key = AppCache.builder() \
-    #     .appid("cli_a50d7635f8bb900b77") \
-    #     .app_secret("HUZ7Ea0eVDrUAfwW2Kgi2fttmwl4U7z577") \
+    #     .appid("cli_a50d7635f8bb9010b77111") \
+    #     .app_secret("HUZ7Ea0eVDrUAfwW2Kgi2fttmwl4U17z57711") \
     #     .app_role_type(1) \
-    #     .encrypt_key("gez70dUsVLgkR8saxWlPldRGfnS0I87p77") \
-    #     .verification_token("u4sUMaG3uWxZIaeNPccQmgCFBuepXLop77") \
-    #     .robot_appid("f4317c24") \
-    #     .robot_api_secret("ZjZhNGM3YzkwYzJhYzIwYjUxYjk3ZDMx77") \
-    #     .robot_api_key("750605805c6e5191737087ec504f600d77") \
+    #     .encrypt_key("gez70dUsVLgkR8saxWlPldRGfnS0I817p71117") \
+    #     .verification_token("u4sUMaG3uWxZIa1eNPccQmgCFBuepXLop711117") \
+    #     .robot_appid("f4131171c24") \
+    #     .robot_api_secret("ZjZhNGM3YzkwY1zJhYzIwYjUxYjk311ZDMx77") \
+    #     .robot_api_key("7506058015c6e519111737087ec504f600d77") \
     #     .robot_domain("generalv3") \
     #     .robot_spark_url("ws://spark-api.xf-yun.com/v3.1/chat") \
     #     .robot_temperature(1) \
